@@ -53,7 +53,7 @@ debug:
 
 
 run-npx:
-	npx https://github.com/google-gemini/gemini-cli
+	npx https://github.com/festoinc/g-project
 
 create-alias:
 	scripts/create_alias.sh

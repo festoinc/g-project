@@ -4,7 +4,7 @@
   "description": "G-PROJECT Core",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/google-gemini/gemini-cli.git"
+    "url": "git+https://github.com/festoinc/g-project.git"
   },
   "type": "module",
   "main": "dist/index.js",
