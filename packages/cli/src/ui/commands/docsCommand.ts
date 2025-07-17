@@ -11,7 +11,7 @@ import { MessageType } from '../types.js';
 
 export const docsCommand: SlashCommand = {
   name: 'docs',
-  description: 'open full Gemini CLI documentation in your browser',
+  description: 'open full G-PROJECT documentation in your browser',
   action: async (context: CommandContext): Promise<void> => {
     const docsUrl = 'https://goo.gle/gemini-cli-docs';
 

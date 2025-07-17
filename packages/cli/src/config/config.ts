@@ -64,7 +64,7 @@ export async function parseArguments(): Promise<CliArgs> {
     .scriptName('gemini')
     .usage(
       '$0 [options]',
-      'Gemini CLI - Launch an interactive CLI, use -p/--prompt for non-interactive mode',
+      'G-PROJECT - Launch an interactive CLI, use -p/--prompt for non-interactive mode',
     )
     .option('model', {
       alias: 'm',

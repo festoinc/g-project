@@ -197,7 +197,7 @@ describe('ideCommand', () => {
       expect(mockContext.ui.addItem).toHaveBeenCalledWith(
         expect.objectContaining({
           type: 'info',
-          text: 'VS Code companion extension installed successfully. Restart gemini-cli in a fresh terminal window.',
+          text: 'VS Code companion extension installed successfully. Restart g-project in a fresh terminal window.',
         }),
         expect.any(Number),
       );
@@ -220,7 +220,7 @@ describe('ideCommand', () => {
       expect(mockContext.ui.addItem).toHaveBeenCalledWith(
         expect.objectContaining({
           type: 'info',
-          text: 'VS Code companion extension installed successfully. Restart gemini-cli in a fresh terminal window.',
+          text: 'VS Code companion extension installed successfully. Restart g-project in a fresh terminal window.',
         }),
         expect.any(Number),
       );

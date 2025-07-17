@@ -11,9 +11,9 @@ let ideServer: IDEServer;
 let logger: vscode.OutputChannel;
 
 export async function activate(context: vscode.ExtensionContext) {
-  logger = vscode.window.createOutputChannel('Gemini CLI IDE Companion');
+  logger = vscode.window.createOutputChannel('G-PROJECT IDE Companion');
   logger.show();
-  logger.appendLine('Starting Gemini CLI IDE Companion server...');
+  logger.appendLine('Starting G-PROJECT IDE Companion server...');
   ideServer = new IDEServer(logger);
   try {
     await ideServer.start(context);
@@ -25,7 +25,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
 export function deactivate() {
   if (ideServer) {
-    logger.appendLine('Deactivating Gemini CLI IDE Companion...');
+    logger.appendLine('Deactivating G-PROJECT IDE Companion...');
     return ideServer.stop().finally(() => {
       logger.dispose();
     });
