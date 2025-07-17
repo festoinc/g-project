@@ -1,13 +1,13 @@
-# Sandboxing in the Gemini CLI
+# Sandboxing in the G-PROJECT
 
-This document provides a guide to sandboxing in the Gemini CLI, including prerequisites, quickstart, and configuration.
+This document provides a guide to sandboxing in the G-PROJECT, including prerequisites, quickstart, and configuration.
 
 ## Prerequisites
 
-Before using sandboxing, you need to install and set up the Gemini CLI:
+Before using sandboxing, you need to install and set up the G-PROJECT:
 
 ```bash
-npm install -g @google/gemini-cli
+npm install -g @festoinc/g-project
 ```
 
 To verify the installation
