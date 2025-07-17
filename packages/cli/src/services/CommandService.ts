@@ -12,6 +12,8 @@ import { themeCommand } from '../ui/commands/themeCommand.js';
 import { statsCommand } from '../ui/commands/statsCommand.js';
 import { compressCommand } from '../ui/commands/compressCommand.js';
 import { quitCommand } from '../ui/commands/quitCommand.js';
+import { startProjectCommand } from '../ui/commands/startProjectCommand.js';
+import { toolsCommand } from '../ui/commands/toolsCommand.js';
 
 const loadBuiltInCommands = async (
   _config: Config | null,
@@ -21,8 +23,10 @@ const loadBuiltInCommands = async (
     clearCommand,
     compressCommand,
     quitCommand,
+    startProjectCommand,
     statsCommand,
     themeCommand,
+    toolsCommand,
   ];
 
   return allCommands.filter(
