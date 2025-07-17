@@ -315,7 +315,7 @@ describe('useSlashCommandProcessor', () => {
     it('should return "handled" when a new command returns a dialog action', async () => {
       const mockAction = vi.fn().mockResolvedValue({
         type: 'dialog',
-        dialog: 'help',
+        dialog: 'auth',
       });
       const newCommand: SlashCommand = { name: 'test', action: mockAction };
       const mockLoader = async () => [newCommand];
@@ -337,7 +337,7 @@ describe('useSlashCommandProcessor', () => {
       const commandResult = await result.current.handleSlashCommand('/test');
 
       expect(mockAction).toHaveBeenCalledTimes(1);
-      expect(mockSetShowHelp).toHaveBeenCalledWith(true);
+      expect(mockOpenAuthDialog).toHaveBeenCalledWith();
       expect(commandResult).toEqual({ type: 'handled' });
     });
 

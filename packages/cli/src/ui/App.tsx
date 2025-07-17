@@ -80,7 +80,6 @@ import { checkForUpdates } from './utils/updateCheck.js';
 import ansiEscapes from 'ansi-escapes';
 import { OverflowProvider } from './contexts/OverflowContext.js';
 import { ShowMoreLines } from './components/ShowMoreLines.js';
-import { PrivacyNotice } from './privacy/PrivacyNotice.js';
 
 const CTRL_EXIT_PROMPT_DURATION_MS = 1000;
 
@@ -138,7 +137,6 @@ const App = ({ config, settings, startupWarnings = [], version }: AppProps) => {
   const [authError, setAuthError] = useState<string | null>(null);
   const [editorError, setEditorError] = useState<string | null>(null);
   const [footerHeight, setFooterHeight] = useState<number>(0);
-  const [corgiMode, setCorgiMode] = useState(false);
   const [currentModel, setCurrentModel] = useState(config.getModel());
   const [shellModeActive, setShellModeActive] = useState(false);
   const [showErrorDetails, setShowErrorDetails] = useState<boolean>(false);
@@ -152,14 +150,10 @@ const App = ({ config, settings, startupWarnings = [], version }: AppProps) => {
   const [ctrlDPressedOnce, setCtrlDPressedOnce] = useState(false);
   const ctrlDTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [constrainHeight, setConstrainHeight] = useState<boolean>(true);
-  const [showPrivacyNotice, setShowPrivacyNotice] = useState<boolean>(false);
   const [modelSwitchedFromQuotaError, setModelSwitchedFromQuotaError] =
     useState<boolean>(false);
   const [userTier, setUserTier] = useState<UserTierId | undefined>(undefined);
 
-  const openPrivacyNotice = useCallback(() => {
-    setShowPrivacyNotice(true);
-  }, []);
   const initialPromptSubmitted = useRef(false);
 
   const errorCount = useMemo(
@@ -221,10 +215,6 @@ const App = ({ config, settings, startupWarnings = [], version }: AppProps) => {
     handleEditorSelect,
     exitEditorDialog,
   } = useEditorSettings(settings, setEditorError, addItem);
-
-  const toggleCorgiMode = useCallback(() => {
-    setCorgiMode((prev) => !prev);
-  }, []);
 
   const performMemoryRefresh = useCallback(async () => {
     addItem(
@@ -389,9 +379,7 @@ const App = ({ config, settings, startupWarnings = [], version }: AppProps) => {
     openThemeDialog,
     openAuthDialog,
     openEditorDialog,
-    toggleCorgiMode,
     setQuittingMessages,
-    openPrivacyNotice,
   );
   const pendingHistoryItems = [...pendingSlashCommandHistoryItems];
 
@@ -661,7 +649,6 @@ const App = ({ config, settings, startupWarnings = [], version }: AppProps) => {
       !isAuthDialogOpen &&
       !isThemeDialogOpen &&
       !isEditorDialogOpen &&
-      !showPrivacyNotice &&
       geminiClient?.isInitialized?.()
     ) {
       submitQuery(initialPrompt);
@@ -674,7 +661,6 @@ const App = ({ config, settings, startupWarnings = [], version }: AppProps) => {
     isAuthDialogOpen,
     isThemeDialogOpen,
     isEditorDialogOpen,
-    showPrivacyNotice,
     geminiClient,
   ]);
 
@@ -849,11 +835,6 @@ const App = ({ config, settings, startupWarnings = [], version }: AppProps) => {
                 onExit={exitEditorDialog}
               />
             </Box>
-          ) : showPrivacyNotice ? (
-            <PrivacyNotice
-              onExit={() => setShowPrivacyNotice(false)}
-              config={config}
-            />
           ) : (
             <>
               <LoadingIndicator
@@ -979,7 +960,7 @@ const App = ({ config, settings, startupWarnings = [], version }: AppProps) => {
             debugMode={config.getDebugMode()}
             branchName={branchName}
             debugMessage={debugMessage}
-            corgiMode={corgiMode}
+            corgiMode={false}
             errorCount={errorCount}
             showErrorDetails={showErrorDetails}
             showMemoryUsage={

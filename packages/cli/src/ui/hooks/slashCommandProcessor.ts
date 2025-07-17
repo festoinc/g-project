@@ -18,8 +18,6 @@ import {
   HistoryItem,
   SlashCommandProcessorResult,
 } from '../types.js';
-import { promises as fs } from 'fs';
-import path from 'path';
 import { LoadedSettings } from '../../config/settings.js';
 import {
   type CommandContext,
@@ -61,9 +59,7 @@ export const useSlashCommandProcessor = (
   openThemeDialog: () => void,
   openAuthDialog: () => void,
   openEditorDialog: () => void,
-  toggleCorgiMode: () => void,
   setQuittingMessages: (message: HistoryItem[]) => void,
-  openPrivacyNotice: () => void,
 ) => {
   const session = useSessionStats();
   const [commands, setCommands] = useState<SlashCommand[]>([]);
@@ -195,136 +191,11 @@ export const useSlashCommandProcessor = (
   const legacyCommands: LegacySlashCommand[] = useMemo(() => {
     const commands: LegacySlashCommand[] = [
       // `/help` and `/clear` have been migrated and REMOVED from this list.
-      {
-        name: 'corgi',
-        action: (_mainCommand, _subCommand, _args) => {
-          toggleCorgiMode();
-        },
-      },
+      // `/corgi` and `/restore` have been REMOVED from this list.
     ];
 
-    if (config?.getCheckpointingEnabled()) {
-      commands.push({
-        name: 'restore',
-        description:
-          'restore a tool call. This will reset the conversation and file history to the state it was in when the tool call was suggested',
-        completion: async () => {
-          const checkpointDir = config?.getProjectTempDir()
-            ? path.join(config.getProjectTempDir(), 'checkpoints')
-            : undefined;
-          if (!checkpointDir) {
-            return [];
-          }
-          try {
-            const files = await fs.readdir(checkpointDir);
-            return files
-              .filter((file) => file.endsWith('.json'))
-              .map((file) => file.replace('.json', ''));
-          } catch (_err) {
-            return [];
-          }
-        },
-        action: async (_mainCommand, subCommand, _args) => {
-          const checkpointDir = config?.getProjectTempDir()
-            ? path.join(config.getProjectTempDir(), 'checkpoints')
-            : undefined;
-
-          if (!checkpointDir) {
-            addMessage({
-              type: MessageType.ERROR,
-              content: 'Could not determine the .gemini directory path.',
-              timestamp: new Date(),
-            });
-            return;
-          }
-
-          try {
-            // Ensure the directory exists before trying to read it.
-            await fs.mkdir(checkpointDir, { recursive: true });
-            const files = await fs.readdir(checkpointDir);
-            const jsonFiles = files.filter((file) => file.endsWith('.json'));
-
-            if (!subCommand) {
-              if (jsonFiles.length === 0) {
-                addMessage({
-                  type: MessageType.INFO,
-                  content: 'No restorable tool calls found.',
-                  timestamp: new Date(),
-                });
-                return;
-              }
-              const truncatedFiles = jsonFiles.map((file) => {
-                const components = file.split('.');
-                if (components.length <= 1) {
-                  return file;
-                }
-                components.pop();
-                return components.join('.');
-              });
-              const fileList = truncatedFiles.join('\n');
-              addMessage({
-                type: MessageType.INFO,
-                content: `Available tool calls to restore:\n\n${fileList}`,
-                timestamp: new Date(),
-              });
-              return;
-            }
-
-            const selectedFile = subCommand.endsWith('.json')
-              ? subCommand
-              : `${subCommand}.json`;
-
-            if (!jsonFiles.includes(selectedFile)) {
-              addMessage({
-                type: MessageType.ERROR,
-                content: `File not found: ${selectedFile}`,
-                timestamp: new Date(),
-              });
-              return;
-            }
-
-            const filePath = path.join(checkpointDir, selectedFile);
-            const data = await fs.readFile(filePath, 'utf-8');
-            const toolCallData = JSON.parse(data);
-
-            if (toolCallData.history) {
-              loadHistory(toolCallData.history);
-            }
-
-            if (toolCallData.clientHistory) {
-              await config
-                ?.getGeminiClient()
-                ?.setHistory(toolCallData.clientHistory);
-            }
-
-            if (toolCallData.commitHash) {
-              await gitService?.restoreProjectFromSnapshot(
-                toolCallData.commitHash,
-              );
-              addMessage({
-                type: MessageType.INFO,
-                content: `Restored project to the state before the tool call.`,
-                timestamp: new Date(),
-              });
-            }
-
-            return {
-              type: 'tool',
-              toolName: toolCallData.toolCall.name,
-              toolArgs: toolCallData.toolCall.args,
-            };
-          } catch (error) {
-            addMessage({
-              type: MessageType.ERROR,
-              content: `Could not read restorable tool calls. This is the error: ${error}`,
-              timestamp: new Date(),
-            });
-          }
-        },
-      });
-    }
     return commands;
-  }, [addMessage, toggleCorgiMode, config, gitService, loadHistory]);
+  }, []);
 
   const handleSlashCommand = useCallback(
     async (
@@ -402,9 +273,6 @@ export const useSlashCommandProcessor = (
                 return { type: 'handled' };
               case 'dialog':
                 switch (result.dialog) {
-                  case 'help':
-                    setShowHelp(true);
-                    return { type: 'handled' };
                   case 'auth':
                     openAuthDialog();
                     return { type: 'handled' };
@@ -413,9 +281,6 @@ export const useSlashCommandProcessor = (
                     return { type: 'handled' };
                   case 'editor':
                     openEditorDialog();
-                    return { type: 'handled' };
-                  case 'privacy':
-                    openPrivacyNotice();
                     return { type: 'handled' };
                   default: {
                     const unhandled: never = result.dialog;
@@ -517,7 +382,6 @@ export const useSlashCommandProcessor = (
       commandContext,
       addMessage,
       openThemeDialog,
-      openPrivacyNotice,
       openEditorDialog,
       setQuittingMessages,
     ],
