@@ -49,7 +49,7 @@
     "clean": "node scripts/clean.js"
   },
   "bin": {
-    "gemini": "bundle/gemini.js"
+    "g-project": "bundle/gemini.js"
   },
   "files": [
     "bundle/",
