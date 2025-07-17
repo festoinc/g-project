@@ -11,8 +11,19 @@
   ░░░░░░░░░            ░░░░░        ░░░░░   ░░░░░    ░░░░░░░     ░░░░░    ░░░░░░░░░░   ░░░░░░░░░      ░░░░░
 ```
 
-## Installation
+## Usage
 
+**Run directly:**
 ```bash
-npx https://github.com/festoinc/g-project
+npx github:festoinc/g-project
+```
+
+**Or install globally:**
+```bash
+npm install -g github:festoinc/g-project
+```
+
+Then run:
+```bash
+g-project
 ```
