@@ -49,10 +49,15 @@
     "clean": "node scripts/clean.js"
   },
   "bin": {
-    "g-project": "bundle/gemini.js"
+    "g-project": "scripts/start.js"
   },
   "files": [
-    "bundle/",
+    "scripts/",
+    "packages/",
+    "esbuild.config.js",
+    "tsconfig.json",
+    "eslint.config.js",
+    "eslint-rules/",
     "README.md",
     "LICENSE"
   ],
