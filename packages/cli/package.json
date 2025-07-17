@@ -1,7 +1,7 @@
 {
   "name": "@google/gemini-cli",
   "version": "0.1.12",
-  "description": "Gemini CLI",
+  "description": "G-PROJECT CLI",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/google-gemini/gemini-cli.git"
