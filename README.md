@@ -11,16 +11,15 @@
   ░░░░░░░░░            ░░░░░        ░░░░░   ░░░░░    ░░░░░░░     ░░░░░    ░░░░░░░░░░   ░░░░░░░░░      ░░░░░
 ```
 
-## Usage
+## Installation
 
-**Run directly:**
+**Install from source:**
 ```bash
-npx github:festoinc/g-project
-```
-
-**Or install globally:**
-```bash
-npm install -g github:festoinc/g-project
+git clone https://github.com/festoinc/g-project.git
+cd g-project
+npm install
+npm run build
+npm link
 ```
 
 Then run:
