@@ -41,7 +41,6 @@ describe('CommandService', () => {
 
   beforeEach(() => {
     mockConfig = {
-      getIdeMode: vi.fn(),
     } as unknown as Mocked<Config>;
   });
 

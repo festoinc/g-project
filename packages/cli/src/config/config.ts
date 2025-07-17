@@ -18,7 +18,6 @@ import {
   FileDiscoveryService,
   TelemetryTarget,
   MCPServerConfig,
-  IDE_SERVER_NAME,
 } from '@google/gemini-cli-core';
 import { Settings } from './settings.js';
 
@@ -56,7 +55,6 @@ export interface CliArgs {
   allowedMcpServerNames: string[] | undefined;
   extensions: string[] | undefined;
   listExtensions: boolean | undefined;
-  ideMode: boolean | undefined;
 }
 
 export async function parseArguments(): Promise<CliArgs> {
@@ -237,10 +235,7 @@ export async function loadCliConfig(
       (v) => v === 'true' || v === '1',
     );
 
-  const ideMode =
-    (argv.ideMode ?? settings.ideMode ?? false) &&
-    process.env.TERM_PROGRAM === 'vscode' &&
-    !process.env.SANDBOX;
+  // IDE mode removed
 
   const activeExtensions = filterActiveExtensions(
     extensions,
@@ -305,35 +300,7 @@ export async function loadCliConfig(
     }
   }
 
-  if (ideMode) {
-    if (mcpServers[IDE_SERVER_NAME]) {
-      logger.warn(
-        `Ignoring user-defined MCP server config for "${IDE_SERVER_NAME}" as it is a reserved name.`,
-      );
-    }
-    const companionPort = process.env.GEMINI_CLI_IDE_SERVER_PORT;
-    if (!companionPort) {
-      throw new Error(
-        'Could not connect to IDE. Make sure you have the companion VS Code extension installed from the marketplace or via /ide install.',
-      );
-    }
-    const httpUrl = `http://localhost:${companionPort}/mcp`;
-    mcpServers[IDE_SERVER_NAME] = new MCPServerConfig(
-      undefined, // command
-      undefined, // args
-      undefined, // env
-      undefined, // cwd
-      undefined, // url
-      httpUrl, // httpUrl
-      undefined, // headers
-      undefined, // tcp
-      undefined, // timeout
-      false, // trust
-      'IDE connection', // description
-      undefined, // includeTools
-      undefined, // excludeTools
-    );
-  }
+  // IDE mode removed - no automatic MCP server configuration
 
   const sandboxConfig = await loadSandboxConfig(settings, argv);
 
@@ -396,7 +363,6 @@ export async function loadCliConfig(
     })),
     noBrowser: !!process.env.NO_BROWSER,
     summarizeToolOutput: settings.summarizeToolOutput,
-    ideMode,
   });
 }
 

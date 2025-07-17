@@ -11,8 +11,6 @@ import {
   shortenPath,
   tildeifyPath,
   tokenLimit,
-  ideContext,
-  ActiveFile,
 } from '@google/gemini-cli-core';
 import { ConsoleSummaryDisplay } from './ConsoleSummaryDisplay.js';
 import process from 'node:process';
@@ -49,23 +47,7 @@ export const Footer: React.FC<FooterProps> = ({
   const limit = tokenLimit(model);
   const percentage = promptTokenCount / limit;
 
-  const [activeFile, setActiveFile] = useState<ActiveFile | undefined>(
-    undefined,
-  );
-
-  useEffect(() => {
-    const updateActiveFile = () => {
-      const currentActiveFile = ideContext.getActiveFileContext();
-      setActiveFile(currentActiveFile);
-    };
-
-    updateActiveFile();
-
-    const unsubscribe = ideContext.subscribeToActiveFile(setActiveFile);
-    return () => {
-      unsubscribe();
-    };
-  }, []);
+  // IDE context removed
 
   return (
     <Box marginTop={1} justifyContent="space-between" width="100%">
@@ -83,19 +65,7 @@ export const Footer: React.FC<FooterProps> = ({
             {branchName && <Text color={Colors.Gray}> ({branchName}*)</Text>}
           </Text>
         )}
-        {activeFile && activeFile.filePath && (
-          <Text>
-            <Text color={Colors.Gray}> | </Text>
-            <Text color={Colors.LightBlue}>
-              {shortenPath(tildeifyPath(activeFile.filePath), 70)}
-            </Text>
-            {activeFile.cursor && (
-              <Text color={Colors.Gray}>
-                :{activeFile.cursor.line}:{activeFile.cursor.character}
-              </Text>
-            )}
-          </Text>
-        )}
+        {/* IDE context removed - no active file display */}
         {debugMode && (
           <Text color={Colors.AccentRed}>
             {' ' + (debugMessage || '--debug')}

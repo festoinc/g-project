@@ -94,7 +94,6 @@ export interface Settings {
   summarizeToolOutput?: Record<string, SummarizeToolOutputSettings>;
 
   // Add other settings here.
-  ideMode?: boolean;
 }
 
 export interface SettingsError {

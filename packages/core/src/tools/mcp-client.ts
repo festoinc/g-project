@@ -21,11 +21,7 @@ import { DiscoveredMCPTool } from './mcp-tool.js';
 
 import { FunctionDeclaration, mcpToTool } from '@google/genai';
 import { ToolRegistry } from './tool-registry.js';
-import {
-  ActiveFileNotificationSchema,
-  IDE_SERVER_NAME,
-  ideContext,
-} from '../services/ideContext.js';
+// IDE context removed
 
 export const MCP_DEFAULT_TIMEOUT_MSEC = 10 * 60 * 1000; // default to 10 minutes
 
@@ -215,19 +211,10 @@ export async function connectAndDiscover(
       mcpClient.onerror = (error) => {
         console.error(`MCP ERROR (${mcpServerName}):`, error.toString());
         updateMCPServerStatus(mcpServerName, MCPServerStatus.DISCONNECTED);
-        if (mcpServerName === IDE_SERVER_NAME) {
-          ideContext.clearActiveFileContext();
-        }
+        // IDE context removed
       };
 
-      if (mcpServerName === IDE_SERVER_NAME) {
-        mcpClient.setNotificationHandler(
-          ActiveFileNotificationSchema,
-          (notification) => {
-            ideContext.setActiveFileContext(notification.params);
-          },
-        );
-      }
+      // IDE context removed - no special notification handling
 
       const tools = await discoverTools(
         mcpServerName,

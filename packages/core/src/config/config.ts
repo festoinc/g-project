@@ -149,7 +149,6 @@ export interface ConfigParameters {
   activeExtensions?: ActiveExtension[];
   noBrowser?: boolean;
   summarizeToolOutput?: Record<string, SummarizeToolOutputSettings>;
-  ideMode?: boolean;
 }
 
 export class Config {
@@ -189,7 +188,6 @@ export class Config {
   private readonly model: string;
   private readonly extensionContextFilePaths: string[];
   private readonly noBrowser: boolean;
-  private readonly ideMode: boolean;
   private modelSwitchedDuringSession: boolean = false;
   private readonly maxSessionTurns: number;
   private readonly listExtensions: boolean;
@@ -245,7 +243,6 @@ export class Config {
     this._activeExtensions = params.activeExtensions ?? [];
     this.noBrowser = params.noBrowser ?? false;
     this.summarizeToolOutput = params.summarizeToolOutput;
-    this.ideMode = params.ideMode ?? false;
 
     if (params.contextFileName) {
       setGeminiMdFilename(params.contextFileName);
@@ -512,9 +509,6 @@ export class Config {
     return this.summarizeToolOutput;
   }
 
-  getIdeMode(): boolean {
-    return this.ideMode;
-  }
 
   async getGitService(): Promise<GitService> {
     if (!this.gitService) {
