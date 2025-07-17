@@ -42,7 +42,6 @@
     "format": "prettier --write .",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "preflight": "npm run clean && npm ci && npm run format && npm run lint:ci && npm run build && npm run typecheck && npm run test:ci",
-    "postinstall": "npm run build && npm run bundle",
     "prepublishOnly": "npm run bundle",
     "prepare:package": "node scripts/prepare-package.js",
     "release:version": "node scripts/version.js",
@@ -50,9 +49,10 @@
     "clean": "node scripts/clean.js"
   },
   "bin": {
-    "g-project": "bundle/gemini.js"
+    "g-project": "bin/g-project.js"
   },
   "files": [
+    "bin/",
     "bundle/",
     "scripts/",
     "packages/",
