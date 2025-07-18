@@ -584,22 +584,27 @@ setup_jira_integration() {
     echo "  3. Your Jira API token"
     echo ""
 
+    # Keep all user inputs in local variables (will be destroyed when function finishes)
+    local jira_host=""
+    local jira_email=""
+    local jira_api_token=""
+    local default_project=""
+    local project_directory=""
+
     # Collect Jira host
-    local JIRA_HOST=""
-    while [ -z "$JIRA_HOST" ]; do
+    while [ -z "$jira_host" ]; do
         printf "Enter your Jira host (e.g., company.atlassian.net): "
-        read -r JIRA_HOST
-        if [ -z "$JIRA_HOST" ]; then
+        read -r jira_host
+        if [ -z "$jira_host" ]; then
             print_error "This field is required"
         fi
     done
 
     # Collect Jira email
-    local JIRA_EMAIL=""
-    while [ -z "$JIRA_EMAIL" ]; do
+    while [ -z "$jira_email" ]; do
         printf "Enter your Jira email address: "
-        read -r JIRA_EMAIL
-        if [ -z "$JIRA_EMAIL" ]; then
+        read -r jira_email
+        if [ -z "$jira_email" ]; then
             print_error "This field is required"
         fi
     done
@@ -613,12 +618,11 @@ setup_jira_integration() {
     echo "4. Copy the generated token"
     echo ""
 
-    local JIRA_API_TOKEN=""
-    while [ -z "$JIRA_API_TOKEN" ]; do
+    while [ -z "$jira_api_token" ]; do
         printf "Enter your Jira API token: "
-        read -r -s JIRA_API_TOKEN
+        read -r -s jira_api_token
         echo ""
-        if [ -z "$JIRA_API_TOKEN" ]; then
+        if [ -z "$jira_api_token" ]; then
             print_error "This field is required"
         fi
     done
@@ -630,7 +634,7 @@ setup_jira_integration() {
     mkdir -p "$HOME/.jira.d"
 
     # Store the API token securely
-    echo "$JIRA_API_TOKEN" > "$HOME/.jira.d/.api_token"
+    echo "$jira_api_token" > "$HOME/.jira.d/.api_token"
     chmod 600 "$HOME/.jira.d/.api_token"
 
     # Create password script
@@ -642,8 +646,8 @@ INNER_EOF
 
     # Create config
     cat > "$HOME/.jira.d/config.yml" << INNER_EOF
-endpoint: https://$JIRA_HOST
-user: $JIRA_EMAIL
+endpoint: https://$jira_host
+user: $jira_email
 password-source: script
 password-script: $HOME/.jira.d/pass.sh
 INNER_EOF
@@ -654,6 +658,144 @@ INNER_EOF
     print_status "Testing Jira connection..."
     if timeout 10 jira request /rest/api/2/myself >/dev/null 2>&1; then
         print_success "Jira connection successful!"
+        
+        # Get project list and ask for default project
+        echo ""
+        print_status "Getting available Jira projects..."
+        echo ""
+        echo "Available projects:"
+        jira request /rest/api/2/project | jq -r '.[] | "  " + .key + " - " + .name' 2>/dev/null || {
+            print_warning "Could not retrieve project list. You can set up default project later."
+        }
+        
+        echo ""
+        while [ -z "$default_project" ]; do
+            printf "Enter the default project key (e.g., AT, PROJ): "
+            read -r default_project
+            if [ -z "$default_project" ]; then
+                print_error "This field is required"
+            fi
+        done
+        
+        # Ask for project directory
+        echo ""
+        local default_dir="$HOME/Documents/Projects/${default_project}_jira"
+        printf "Enter project directory (default: $default_dir): "
+        read -r project_directory
+        
+        # Use default if empty
+        if [ -z "$project_directory" ]; then
+            project_directory="$default_dir"
+        fi
+        
+        # Create project directory and settings
+        print_status "Creating project directory: $project_directory"
+        mkdir -p "$project_directory/settings"
+        
+        # Create settings.md file with specified structure
+        cat > "$project_directory/settings/settings.md" << SETTINGS_EOF
+# Project Settings
+DEFAULT_PROJECT_HANDLE=$default_project
+JIRA_USER=$jira_email
+LAST_STAND_UP=$(date)
+
+
+#Role description
+You are Jira manager. Your goal is help run all processes for the team.
+Please try to provide all information in user friendly way. 
+If there is any super complex technical terms explain them with simple words or nalaogies.
+If there is any factual information like tiket moved from status x to status y try to provide what it mean for the business, like user xyz started verifictaion of next functionality.. 
+
+
+#Running istructions 
+- Do not print running logs. Just final results 
+
+
+#How to Work with Jira
+
+jira cli is avalible in this enviroment. You can use one of the mentiotend commands:
+
+jira --help
+usage: jira [<flags>] <command> [<args> ...]
+
+Jira Command Line Interface
+
+Global flags:
+  -h, --help                   Show context-sensitive help (also try --help-long and --help-man).
+  -v, --verbose ...            Increase verbosity for debugging
+  -e, --endpoint=ENDPOINT      Base URI to use for Jira
+  -k, --insecure               Disable TLS certificate verification
+  -Q, --quiet                  Suppress output to console
+      --unixproxy=UNIXPROXY    Path for a unix-socket proxy
+      --socksproxy=SOCKSPROXY  Address for a socks proxy
+  -u, --user=USER              user name used within the Jira service
+      --login=LOGIN            login name that corresponds to the user used for authentication
+
+Commands:
+  help:                Show help.
+  version:             Prints version
+  acknowledge:         Transition issue to acknowledge state
+  assign:              Assign user to issue
+  attach create:       Attach file to issue
+  attach get:          Fetch attachment
+  attach list:         Prints attachment details for issue
+  attach remove:       Delete attachment
+  backlog:             Transition issue to Backlog state
+  block:               Mark issues as blocker
+  browse:              Open issue in browser
+  close:               Transition issue to close state
+  comment:             Add comment to issue
+  component add:       Add component
+  components:          Show components for a project
+  create:              Create issue
+  createmeta:          View 'create' metadata
+  done:                Transition issue to Done state
+  dup:                 Mark issues as duplicate
+  edit:                Edit issue details
+  editmeta:            View 'edit' metadata
+  epic add:            Add issues to Epic
+  epic create:         Create Epic
+  epic list:           Prints list of issues for an epic with optional search criteria
+  epic remove:         Remove issues from Epic
+  export-templates:    Export templates for customizations
+  fields:              Prints all fields, both System and Custom
+  in-progress:         Transition issue to Progress state
+  issuelink:           Link two issues
+  issuelinktypes:      Show the issue link types
+  issuetypes:          Show issue types for a project
+  labels add:          Add labels to an issue
+  labels remove:       Remove labels from an issue
+  labels set:          Set labels on an issue
+  list:                Prints list of issues for given search criteria
+  login:               Attempt to login into jira server
+  logout:              Deactivate session with Jira server
+  rank:                Mark issues as blocker
+  reopen:              Transition issue to reopen state
+  request:             Open issue in requestr
+  resolve:             Transition issue to resolve state
+  start:               Transition issue to start state
+  stop:                Transition issue to stop state
+  subtask:             Subtask issue
+  take:                Assign issue to yourself
+  todo:                Transition issue to To Do state
+  transition:          Transition issue to given state
+  transitions:         List valid issue transitions
+  transmeta:           List valid issue transitions
+  unassign:            Unassign an issue
+  unexport-templates:  Remove unmodified exported templates
+  view:                Prints issue details
+  vote:                Vote up/down an issue
+  watch:               Add/Remove watcher to issue
+  worklog add:         Add a worklog to an issue
+  worklog list:        Prints the worklog data for given issue
+  session:             Attempt to login into jira server
+SETTINGS_EOF
+        
+        print_success "Project settings created at: $project_directory/settings/settings.md"
+        
+        # Export the project directory for use in main function
+        export G_PROJECT_DIR="$project_directory"
+        
     else
         print_warning "Jira connection test failed or timed out."
         print_status "You can test the connection later by running: jira request /rest/api/2/myself"
@@ -783,6 +925,12 @@ main() {
     echo ""
     echo -e "${YELLOW}Starting G-PROJECT...${NC}"
     echo ""
+    
+    # Change to project directory if it was set during Jira setup
+    if [ -n "$G_PROJECT_DIR" ] && [ -d "$G_PROJECT_DIR" ]; then
+        print_status "Changing to project directory: $G_PROJECT_DIR"
+        cd "$G_PROJECT_DIR"
+    fi
     
     # Run G-PROJECT immediately
     "$BIN_DIR/g-project" || g-project
