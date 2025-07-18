@@ -83,9 +83,9 @@ async function getGeminiMdFilePathsInternal(
 ): Promise<string[]> {
   const allPaths = new Set<string>();
   
-  // Look for /settings/settings.md
+  // Look for settings/settings.md in the current working directory
   // Allow override via environment variable for testing
-  const settingsPath = process.env.G_PROJECT_SETTINGS_PATH || path.join(path.sep, 'settings', 'settings.md');
+  const settingsPath = process.env.G_PROJECT_SETTINGS_PATH || path.join(currentWorkingDirectory, 'settings', 'settings.md');
   
   if (debugMode)
     logger.debug(
