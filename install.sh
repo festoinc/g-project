@@ -645,14 +645,14 @@ INNER_EOF
 
     print_success "Jira CLI configured successfully"
 
-    # Test connection
+    # Test connection with timeout
     print_status "Testing Jira connection..."
-    if jira request /rest/api/2/myself >/dev/null 2>&1; then
+    if timeout 10 jira request /rest/api/2/myself >/dev/null 2>&1; then
         print_success "Jira connection successful!"
     else
-        print_error "Jira connection failed. Please check your credentials."
-        print_status "You can reconfigure later by running 'g-project-setup-jira'"
-        return 1
+        print_warning "Jira connection test failed or timed out."
+        print_status "You can test the connection later by running: jira request /rest/api/2/myself"
+        print_status "If there are issues, reconfigure by running 'g-project-setup-jira'"
     fi
 
     print_success "Jira setup completed successfully!"
@@ -771,12 +771,13 @@ INNER_EOF
 
 print_success "Jira CLI configured successfully"
 
-# Test connection
+# Test connection with timeout
 print_status "Testing Jira connection..."
-if jira request /rest/api/2/myself >/dev/null 2>&1; then
+if timeout 10 jira request /rest/api/2/myself >/dev/null 2>&1; then
     print_success "Jira connection successful!"
 else
-    print_error "Jira connection failed. Please check your credentials."
+    print_error "Jira connection test failed or timed out."
+    print_status "You can test the connection later by running: jira request /rest/api/2/myself"
     exit 1
 fi
 
