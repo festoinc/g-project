@@ -8,7 +8,7 @@ import { SlashCommand } from './types.js';
 
 export const startProjectCommand: SlashCommand = {
   name: 'start-project',
-  description: 'Initialize or edit project settings with Jira integration. Usage: /start-project <PROJECT_HANDLE> <JIRA_USER>',
+  description: 'Initialize project settings at /settings/settings.md with Jira integration. Usage: /start-project <PROJECT_HANDLE> <JIRA_USER>',
   action: async (context, args) => {
     const argsArray = args.trim().split(/\s+/);
     
@@ -22,8 +22,8 @@ export const startProjectCommand: SlashCommand = {
 
     const [projectHandle, jiraUser] = argsArray;
 
-    // Check if settings.md exists
-    const settingsPath = `${process.cwd()}/settings.md`;
+    // Create /settings/settings.md
+    const settingsPath = '/settings/settings.md';
     
     // Generate LAST_STAND_UP (current time - 24h) in format: 16-Jul-2025 19:24:16
     const now = new Date();
@@ -39,7 +39,7 @@ export const startProjectCommand: SlashCommand = {
     
     const lastStandUp = `${day}-${month}-${year} ${hours}:${minutes}:${seconds}`;
 
-    // Create settings.md content
+    // Create settings content for /settings/settings.md
     const settingsContent = `# Project Settings
 
 PROJECT_HANDLE=${projectHandle}

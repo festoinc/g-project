@@ -22,11 +22,7 @@ import { ShellTool } from '../tools/shell.js';
 import { WriteFileTool } from '../tools/write-file.js';
 import { WebFetchTool } from '../tools/web-fetch.js';
 import { ReadManyFilesTool } from '../tools/read-many-files.js';
-import {
-  MemoryTool,
-  setGeminiMdFilename,
-  GEMINI_CONFIG_DIR as GEMINI_DIR,
-} from '../tools/memoryTool.js';
+// Memory tool imports removed - no longer using GEMINI.md files
 import { WebSearchTool } from '../tools/web-search.js';
 import { GeminiClient } from '../core/client.js';
 import { FileDiscoveryService } from '../services/fileDiscoveryService.js';
@@ -244,9 +240,7 @@ export class Config {
     this.noBrowser = params.noBrowser ?? false;
     this.summarizeToolOutput = params.summarizeToolOutput;
 
-    if (params.contextFileName) {
-      setGeminiMdFilename(params.contextFileName);
-    }
+    // Context filename handling removed - no longer using GEMINI.md files
 
     if (this.telemetrySettings.enabled) {
       initializeTelemetry(this);
@@ -444,9 +438,7 @@ export class Config {
     return this.geminiClient;
   }
 
-  getGeminiDir(): string {
-    return path.join(this.targetDir, GEMINI_DIR);
-  }
+  // getGeminiDir removed - no longer using .gemini directory
 
   getProjectTempDir(): string {
     return getProjectTempDir(this.getProjectRoot());
@@ -577,7 +569,8 @@ export class Config {
     registerCoreTool(WebFetchTool, this);
     registerCoreTool(ReadManyFilesTool, this);
     registerCoreTool(ShellTool, this);
-    registerCoreTool(MemoryTool);
+    // MemoryTool disabled - no longer saving to ~/.gemini/GEMINI.md
+    // registerCoreTool(MemoryTool);
     registerCoreTool(WebSearchTool, this);
 
     await registry.discoverTools();
