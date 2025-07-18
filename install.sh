@@ -6,7 +6,7 @@
 set -e
 
 # Installation script version
-INSTALL_VERSION="2025-01-18_15:30:00"
+INSTALL_VERSION="v17"
 
 # Colors for output
 RED='\033[0;31m'
@@ -700,7 +700,7 @@ INNER_EOF
 # Project Settings
 DEFAULT_PROJECT_HANDLE=$default_project
 JIRA_USER=$jira_email
-LAST_STAND_UP=$(date)
+LAST_STAND_UP=$(date -u -d "24 hours ago" +"%a %b %d %H:%M")
 
 
 #Role description
@@ -712,6 +712,7 @@ If there is any factual information like tiket moved from status x to status y t
 
 #Running istructions 
 - Do not print running logs. Just final results 
+- If project in request is not mentioned use DEFAULT_PROJECT_HANDLE for pulling data 
 
 
 #How to Work with Jira
