@@ -561,9 +561,14 @@ update_shell_rc() {
 setup_jira_integration() {
     # Check if running in a TTY (interactive terminal)
     if [ ! -t 0 ]; then
-        print_warning "Jira setup requires interactive input. Skipping automated setup."
-        print_status "Run 'g-project-setup-jira' after installation to configure Jira."
-        return 0
+        # Try to redirect to TTY for interactive input
+        if [ -c /dev/tty ]; then
+            exec < /dev/tty
+        else
+            print_warning "No TTY available. Jira setup will be skipped."
+            print_status "Run 'g-project-setup-jira' after installation to configure Jira."
+            return 0
+        fi
     fi
 
     echo ""
@@ -664,134 +669,6 @@ INNER_EOF
     return 0
 }
 
-# Function to create Jira setup script (fallback)
-create_jira_setup_script() {
-    print_status "Creating Jira setup script..."
-    
-    cat > "$BIN_DIR/g-project-setup-jira" << 'EOF'
-#!/bin/bash
-
-# G-PROJECT Jira Setup Script
-# Run this after installation to configure Jira integration
-
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
-
-print_status() {
-    echo -e "${BLUE}[INFO]${NC} $1"
-}
-
-print_success() {
-    echo -e "${GREEN}[SUCCESS]${NC} $1"
-}
-
-print_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
-}
-
-echo -e "${BLUE}╔══════════════════════════════════════════════════════════════╗${NC}"
-echo -e "${BLUE}║                    JIRA SETUP                                ║${NC}"
-echo -e "${BLUE}╚══════════════════════════════════════════════════════════════╝${NC}"
-echo ""
-
-print_status "Setting up Jira CLI integration..."
-print_status "You will be prompted for 3 pieces of information:"
-echo "  1. Your Jira host (e.g., company.atlassian.net)"
-echo "  2. Your Jira email address"
-echo "  3. Your Jira API token"
-echo ""
-
-# Collect Jira host
-JIRA_HOST=""
-while [ -z "$JIRA_HOST" ]; do
-    printf "Enter your Jira host (e.g., company.atlassian.net): "
-    read -r JIRA_HOST
-    if [ -z "$JIRA_HOST" ]; then
-        print_error "This field is required"
-    fi
-done
-
-# Collect Jira email
-JIRA_EMAIL=""
-while [ -z "$JIRA_EMAIL" ]; do
-    printf "Enter your Jira email address: "
-    read -r JIRA_EMAIL
-    if [ -z "$JIRA_EMAIL" ]; then
-        print_error "This field is required"
-    fi
-done
-
-# Collect API token
-echo ""
-print_status "To get your Jira API token:"
-echo "1. Go to https://id.atlassian.com/manage-profile/security/api-tokens"
-echo "2. Click 'Create API token'"
-echo "3. Give it a name (e.g., 'G-PROJECT CLI')"
-echo "4. Copy the generated token"
-echo ""
-
-JIRA_API_TOKEN=""
-while [ -z "$JIRA_API_TOKEN" ]; do
-    printf "Enter your Jira API token: "
-    read -r -s JIRA_API_TOKEN
-    echo ""
-    if [ -z "$JIRA_API_TOKEN" ]; then
-        print_error "This field is required"
-    fi
-done
-
-echo ""
-print_status "Configuring Jira CLI..."
-
-# Create .jira.d directory
-mkdir -p "$HOME/.jira.d"
-
-# Store the API token securely
-echo "$JIRA_API_TOKEN" > "$HOME/.jira.d/.api_token"
-chmod 600 "$HOME/.jira.d/.api_token"
-
-# Create password script
-cat > "$HOME/.jira.d/pass.sh" << 'INNER_EOF'
-#!/bin/bash
-cat "$HOME/.jira.d/.api_token"
-INNER_EOF
-chmod +x "$HOME/.jira.d/pass.sh"
-
-# Create config
-cat > "$HOME/.jira.d/config.yml" << INNER_EOF
-endpoint: https://$JIRA_HOST
-user: $JIRA_EMAIL
-password-source: script
-password-script: $HOME/.jira.d/pass.sh
-INNER_EOF
-
-print_success "Jira CLI configured successfully"
-
-# Test connection with timeout
-print_status "Testing Jira connection..."
-if timeout 10 jira request /rest/api/2/myself >/dev/null 2>&1; then
-    print_success "Jira connection successful!"
-else
-    print_error "Jira connection test failed or timed out."
-    print_status "You can test the connection later by running: jira request /rest/api/2/myself"
-    exit 1
-fi
-
-print_success "Jira setup completed successfully!"
-echo ""
-echo "You can now use:"
-echo "• jira list -p <PROJECT>"
-echo "• last-updates <PROJECT> '<DATE>' [--logs]"
-echo "• get-latest-changes <ISSUE> '<DATE>' [--logs]"
-EOF
-
-    chmod +x "$BIN_DIR/g-project-setup-jira"
-    print_success "Jira setup script created at $BIN_DIR/g-project-setup-jira"
-}
 
 # Function to verify installation
 verify_installation() {
@@ -820,12 +697,6 @@ verify_installation() {
         errors=$((errors + 1))
     fi
     
-    if [ -x "$BIN_DIR/g-project-setup-jira" ]; then
-        print_success "Jira setup script installed successfully!"
-    else
-        print_error "Jira setup script installation failed"
-        errors=$((errors + 1))
-    fi
     
     if [ $errors -eq 0 ]; then
         print_success "All components installed successfully!"
@@ -863,7 +734,6 @@ main() {
     install_go_jira
     add_jira_functions
     update_shell_rc
-    create_jira_setup_script
     
     # Setup Jira integration (interactive prompt)
     setup_jira_integration
@@ -920,10 +790,6 @@ main() {
     echo -e "${BLUE}Documentation:${NC}"
     echo "• G-PROJECT: https://github.com/festoinc/g-project"
     echo "• go-jira: https://github.com/go-jira/jira"
-    echo ""
-    echo -e "${BLUE}Jira Setup:${NC}"
-    echo "Run 'g-project-setup-jira' to configure your Jira credentials"
-    echo "You'll need: host, email, and API token"
 }
 
 # Run main function
