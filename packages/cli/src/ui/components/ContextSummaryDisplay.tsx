@@ -10,7 +10,7 @@ import { Colors } from '../colors.js';
 import { type MCPServerConfig } from '@google/gemini-cli-core';
 
 interface ContextSummaryDisplayProps {
-  geminiMdFileCount: number;
+  geminiMdFileCount: number; // Now represents settings file count
   contextFileNames: string[];
   mcpServers?: Record<string, MCPServerConfig>;
   showToolDescriptions?: boolean;
@@ -28,15 +28,11 @@ export const ContextSummaryDisplay: React.FC<ContextSummaryDisplayProps> = ({
     return <Text> </Text>; // Render an empty space to reserve height
   }
 
-  const geminiMdText = (() => {
+  const settingsText = (() => {
     if (geminiMdFileCount === 0) {
       return '';
     }
-    const allNamesTheSame = new Set(contextFileNames).size < 2;
-    const name = allNamesTheSame ? contextFileNames[0] : 'context';
-    return `${geminiMdFileCount} ${name} file${
-      geminiMdFileCount > 1 ? 's' : ''
-    }`;
+    return 'Settings are loaded!';
   })();
 
   const mcpText =
@@ -44,12 +40,12 @@ export const ContextSummaryDisplay: React.FC<ContextSummaryDisplayProps> = ({
       ? `${mcpServerCount} MCP server${mcpServerCount > 1 ? 's' : ''}`
       : '';
 
-  let summaryText = 'Using ';
-  if (geminiMdText) {
-    summaryText += geminiMdText;
+  let summaryText = '';
+  if (settingsText) {
+    summaryText += settingsText;
   }
-  if (geminiMdText && mcpText) {
-    summaryText += ' and ';
+  if (settingsText && mcpText) {
+    summaryText += ' Using ';
   }
   if (mcpText) {
     summaryText += mcpText;
