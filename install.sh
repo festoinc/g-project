@@ -95,12 +95,22 @@ install_go_jira() {
         local ARCH="$(uname -m)"
         
         # Map architecture names for go-jira format
+        # Note: go-jira only provides amd64 builds for macOS, ARM64 Macs will use amd64 via Rosetta
         case "$ARCH" in
             x86_64)
                 ARCH="amd64"
                 ;;
+            i386|i686)
+                ARCH="386"
+                ;;
             aarch64|arm64)
-                ARCH="arm64"
+                if [ "$OS" = "darwin" ]; then
+                    print_status "Using Intel binary for ARM64 Mac (runs via Rosetta)"
+                    ARCH="amd64"
+                else
+                    print_error "ARM64 Linux not supported by go-jira. Only amd64 available."
+                    exit 1
+                fi
                 ;;
             *)
                 print_error "Unsupported architecture: $ARCH"
@@ -115,6 +125,9 @@ install_go_jira() {
                 ;;
             linux)
                 OS="linux"
+                ;;
+            mingw*|msys*|cygwin*)
+                OS="windows"
                 ;;
             *)
                 print_error "Unsupported operating system: $OS"
@@ -141,7 +154,11 @@ install_go_jira() {
         
         # Download the release
         print_status "Downloading go-jira $VERSION for $OS/$ARCH..."
-        local DOWNLOAD_URL="https://github.com/go-jira/jira/releases/download/${VERSION}/jira-${OS}-${ARCH}"
+        local FILENAME="jira-${OS}-${ARCH}"
+        if [ "$OS" = "windows" ]; then
+            FILENAME="${FILENAME}.exe"
+        fi
+        local DOWNLOAD_URL="https://github.com/go-jira/jira/releases/download/${VERSION}/${FILENAME}"
         
         if command_exists curl; then
             if ! curl -fsSL "$DOWNLOAD_URL" -o "$TEMP_DIR/jira"; then
