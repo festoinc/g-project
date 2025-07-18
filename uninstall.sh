@@ -88,6 +88,14 @@ clean_path_entries() {
                 print_success "Cleaned $shell_file (backup created)"
                 cleaned=true
             fi
+            
+            # Remove Jira functions source line
+            if grep -q "source.*\.jira_functions" "$shell_file"; then
+                print_status "Removing Jira functions from $shell_file..."
+                sed -i '/# Source Jira custom functions/d' "$shell_file" 2>/dev/null || true
+                sed -i '/source.*\.jira_functions/d' "$shell_file" 2>/dev/null || true
+                cleaned=true
+            fi
         fi
     done
     
@@ -96,6 +104,53 @@ clean_path_entries() {
     else
         print_status "No G-PROJECT PATH entries found in shell configuration files"
     fi
+}
+
+# Function to remove Jira-related files
+remove_jira_components() {
+    local jira_removed=false
+    
+    # Remove Jira functions file
+    if [ -f "$HOME/.jira_functions" ]; then
+        print_status "Removing Jira custom functions..."
+        rm -f "$HOME/.jira_functions"
+        print_success "Removed ~/.jira_functions"
+        jira_removed=true
+    fi
+    
+    # Ask about Jira CLI and config
+    if [ -d "$HOME/.jira.d" ] || command_exists jira; then
+        echo ""
+        echo -e "${YELLOW}Jira CLI detected. Do you want to remove it?${NC}"
+        echo "This will remove:"
+        echo "• go-jira CLI tool"
+        echo "• Jira configuration (~/.jira.d)"
+        echo "• Stored credentials"
+        read -p "Remove Jira CLI components? (y/N): " -n 1 -r
+        echo ""
+        
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            # Remove Jira config directory
+            if [ -d "$HOME/.jira.d" ]; then
+                print_status "Removing Jira configuration..."
+                rm -rf "$HOME/.jira.d"
+                print_success "Removed ~/.jira.d"
+            fi
+            
+            # Remove go-jira executable
+            if [ -f "$BIN_DIR/jira" ]; then
+                print_status "Removing go-jira CLI..."
+                rm -f "$BIN_DIR/jira"
+                print_success "Removed $BIN_DIR/jira"
+            fi
+            
+            jira_removed=true
+        else
+            print_status "Keeping Jira CLI components"
+        fi
+    fi
+    
+    return 0
 }
 
 # Function to check for remaining G-PROJECT processes
@@ -153,12 +208,22 @@ show_cleanup_summary() {
     echo "• G-PROJECT installation directory: $INSTALL_DIR"
     echo "• G-PROJECT executable: $BIN_DIR/$EXECUTABLE_NAME"
     echo "• PATH entries from shell configuration files"
+    
+    if [ -f "$HOME/.jira_functions" ]; then
+        echo "• Jira custom functions: ~/.jira_functions"
+    fi
+    
     echo ""
     echo -e "${BLUE}What was NOT removed:${NC}"
     echo "• Node.js and npm"
     echo "• Git"
     echo "• Any project-specific settings/settings.md files"
     echo "• Other development tools installed during setup"
+    
+    # Show Jira status if kept
+    if [ -d "$HOME/.jira.d" ] || command_exists jira; then
+        echo "• Jira CLI and configuration (kept by user choice)"
+    fi
     echo ""
     echo -e "${YELLOW}Next steps:${NC}"
     echo "1. Restart your terminal or run: source ~/.bashrc (or ~/.zshrc)"
@@ -223,6 +288,7 @@ main() {
     # Remove components
     remove_executable
     remove_installation_directory
+    remove_jira_components
     clean_path_entries
     
     # Verify and show summary
