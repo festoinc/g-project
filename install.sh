@@ -781,15 +781,11 @@ main() {
     fi
     
     echo ""
-    echo -e "${YELLOW}Next steps:${NC}"
-    echo "1. Test G-PROJECT: g-project --help"
-    echo "2. Test Jira custom functions:"
-    echo "   - last-updates <PROJECT> '<DATE>' [--logs]"
-    echo "   - get-latest-changes <ISSUE> '<DATE>' [--logs]"
+    echo -e "${YELLOW}Starting G-PROJECT...${NC}"
     echo ""
-    echo -e "${BLUE}Documentation:${NC}"
-    echo "• G-PROJECT: https://github.com/festoinc/g-project"
-    echo "• go-jira: https://github.com/go-jira/jira"
+    
+    # Run G-PROJECT immediately
+    "$BIN_DIR/g-project" || g-project
 }
 
 # Run main function
