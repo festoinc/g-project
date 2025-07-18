@@ -567,19 +567,6 @@ setup_jira_integration() {
     fi
 
     echo ""
-    echo -e "${YELLOW}Would you like to setup Jira integration now?${NC}"
-    echo "This will configure go-jira CLI with your credentials."
-    echo "You can also run 'g-project-setup-jira' later to do this."
-    echo ""
-    read -p "Setup Jira integration now? (y/N): " -n 1 -r
-    echo ""
-    
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-        print_status "Skipping Jira setup. Run 'g-project-setup-jira' later to configure."
-        return 0
-    fi
-
-    echo ""
     echo -e "${BLUE}╔══════════════════════════════════════════════════════════════╗${NC}"
     echo -e "${BLUE}║                    JIRA SETUP                                ║${NC}"
     echo -e "${BLUE}╚══════════════════════════════════════════════════════════════╝${NC}"
@@ -925,12 +912,7 @@ main() {
     echo ""
     echo -e "${YELLOW}Next steps:${NC}"
     echo "1. Test G-PROJECT: g-project --help"
-    if [ ! -f "$HOME/.jira.d/config.yml" ]; then
-        echo "2. Setup Jira integration: g-project-setup-jira"
-        echo "3. After Jira setup, test custom functions:"
-    else
-        echo "2. Test Jira custom functions:"
-    fi
+    echo "2. Test Jira custom functions:"
     echo "   - last-updates <PROJECT> '<DATE>' [--logs]"
     echo "   - get-latest-changes <ISSUE> '<DATE>' [--logs]"
     echo ""
