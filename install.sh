@@ -557,7 +557,127 @@ update_shell_rc() {
     fi
 }
 
-# Function to create Jira setup script
+# Function to setup Jira integration
+setup_jira_integration() {
+    # Check if running in a TTY (interactive terminal)
+    if [ ! -t 0 ]; then
+        print_warning "Jira setup requires interactive input. Skipping automated setup."
+        print_status "Run 'g-project-setup-jira' after installation to configure Jira."
+        return 0
+    fi
+
+    echo ""
+    echo -e "${YELLOW}Would you like to setup Jira integration now?${NC}"
+    echo "This will configure go-jira CLI with your credentials."
+    echo "You can also run 'g-project-setup-jira' later to do this."
+    echo ""
+    read -p "Setup Jira integration now? (y/N): " -n 1 -r
+    echo ""
+    
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        print_status "Skipping Jira setup. Run 'g-project-setup-jira' later to configure."
+        return 0
+    fi
+
+    echo ""
+    echo -e "${BLUE}╔══════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${BLUE}║                    JIRA SETUP                                ║${NC}"
+    echo -e "${BLUE}╚══════════════════════════════════════════════════════════════╝${NC}"
+    echo ""
+
+    print_status "Setting up Jira CLI integration..."
+    print_status "You will be prompted for 3 pieces of information:"
+    echo "  1. Your Jira host (e.g., company.atlassian.net)"
+    echo "  2. Your Jira email address"
+    echo "  3. Your Jira API token"
+    echo ""
+
+    # Collect Jira host
+    local JIRA_HOST=""
+    while [ -z "$JIRA_HOST" ]; do
+        printf "Enter your Jira host (e.g., company.atlassian.net): "
+        read -r JIRA_HOST
+        if [ -z "$JIRA_HOST" ]; then
+            print_error "This field is required"
+        fi
+    done
+
+    # Collect Jira email
+    local JIRA_EMAIL=""
+    while [ -z "$JIRA_EMAIL" ]; do
+        printf "Enter your Jira email address: "
+        read -r JIRA_EMAIL
+        if [ -z "$JIRA_EMAIL" ]; then
+            print_error "This field is required"
+        fi
+    done
+
+    # Collect API token
+    echo ""
+    print_status "To get your Jira API token:"
+    echo "1. Go to https://id.atlassian.com/manage-profile/security/api-tokens"
+    echo "2. Click 'Create API token'"
+    echo "3. Give it a name (e.g., 'G-PROJECT CLI')"
+    echo "4. Copy the generated token"
+    echo ""
+
+    local JIRA_API_TOKEN=""
+    while [ -z "$JIRA_API_TOKEN" ]; do
+        printf "Enter your Jira API token: "
+        read -r -s JIRA_API_TOKEN
+        echo ""
+        if [ -z "$JIRA_API_TOKEN" ]; then
+            print_error "This field is required"
+        fi
+    done
+
+    echo ""
+    print_status "Configuring Jira CLI..."
+
+    # Create .jira.d directory
+    mkdir -p "$HOME/.jira.d"
+
+    # Store the API token securely
+    echo "$JIRA_API_TOKEN" > "$HOME/.jira.d/.api_token"
+    chmod 600 "$HOME/.jira.d/.api_token"
+
+    # Create password script
+    cat > "$HOME/.jira.d/pass.sh" << 'INNER_EOF'
+#!/bin/bash
+cat "$HOME/.jira.d/.api_token"
+INNER_EOF
+    chmod +x "$HOME/.jira.d/pass.sh"
+
+    # Create config
+    cat > "$HOME/.jira.d/config.yml" << INNER_EOF
+endpoint: https://$JIRA_HOST
+user: $JIRA_EMAIL
+password-source: script
+password-script: $HOME/.jira.d/pass.sh
+INNER_EOF
+
+    print_success "Jira CLI configured successfully"
+
+    # Test connection
+    print_status "Testing Jira connection..."
+    if jira request /rest/api/2/myself >/dev/null 2>&1; then
+        print_success "Jira connection successful!"
+    else
+        print_error "Jira connection failed. Please check your credentials."
+        print_status "You can reconfigure later by running 'g-project-setup-jira'"
+        return 1
+    fi
+
+    print_success "Jira setup completed successfully!"
+    echo ""
+    echo "You can now use:"
+    echo "• jira list -p <PROJECT>"
+    echo "• last-updates <PROJECT> '<DATE>' [--logs]"
+    echo "• get-latest-changes <ISSUE> '<DATE>' [--logs]"
+    return 0
+}
+
+# Function to create Jira setup script (fallback)
 create_jira_setup_script() {
     print_status "Creating Jira setup script..."
     
@@ -586,37 +706,6 @@ print_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
-prompt_input() {
-    local prompt="$1"
-    local result
-    
-    while [ -z "$result" ]; do
-        printf "%s: " "$prompt"
-        read -r result
-        if [ -z "$result" ]; then
-            print_error "This field is required"
-        fi
-    done
-    
-    echo "$result"
-}
-
-prompt_password() {
-    local prompt="$1"
-    local result
-    
-    while [ -z "$result" ]; do
-        printf "%s: " "$prompt"
-        read -r -s result
-        echo ""
-        if [ -z "$result" ]; then
-            print_error "This field is required"
-        fi
-    done
-    
-    echo "$result"
-}
-
 echo -e "${BLUE}╔══════════════════════════════════════════════════════════════╗${NC}"
 echo -e "${BLUE}║                    JIRA SETUP                                ║${NC}"
 echo -e "${BLUE}╚══════════════════════════════════════════════════════════════╝${NC}"
@@ -630,10 +719,24 @@ echo "  3. Your Jira API token"
 echo ""
 
 # Collect Jira host
-JIRA_HOST=$(prompt_input "Enter your Jira host (e.g., company.atlassian.net)")
+JIRA_HOST=""
+while [ -z "$JIRA_HOST" ]; do
+    printf "Enter your Jira host (e.g., company.atlassian.net): "
+    read -r JIRA_HOST
+    if [ -z "$JIRA_HOST" ]; then
+        print_error "This field is required"
+    fi
+done
 
 # Collect Jira email
-JIRA_EMAIL=$(prompt_input "Enter your Jira email address")
+JIRA_EMAIL=""
+while [ -z "$JIRA_EMAIL" ]; do
+    printf "Enter your Jira email address: "
+    read -r JIRA_EMAIL
+    if [ -z "$JIRA_EMAIL" ]; then
+        print_error "This field is required"
+    fi
+done
 
 # Collect API token
 echo ""
@@ -644,7 +747,15 @@ echo "3. Give it a name (e.g., 'G-PROJECT CLI')"
 echo "4. Copy the generated token"
 echo ""
 
-JIRA_API_TOKEN=$(prompt_password "Enter your Jira API token")
+JIRA_API_TOKEN=""
+while [ -z "$JIRA_API_TOKEN" ]; do
+    printf "Enter your Jira API token: "
+    read -r -s JIRA_API_TOKEN
+    echo ""
+    if [ -z "$JIRA_API_TOKEN" ]; then
+        print_error "This field is required"
+    fi
+done
 
 echo ""
 print_status "Configuring Jira CLI..."
@@ -766,6 +877,9 @@ main() {
     update_shell_rc
     create_jira_setup_script
     
+    # Setup Jira integration (interactive prompt)
+    setup_jira_integration
+    
     # Verify installation
     verify_installation
     
@@ -811,8 +925,12 @@ main() {
     echo ""
     echo -e "${YELLOW}Next steps:${NC}"
     echo "1. Test G-PROJECT: g-project --help"
-    echo "2. Setup Jira integration: g-project-setup-jira"
-    echo "3. After Jira setup, test custom functions:"
+    if [ ! -f "$HOME/.jira.d/config.yml" ]; then
+        echo "2. Setup Jira integration: g-project-setup-jira"
+        echo "3. After Jira setup, test custom functions:"
+    else
+        echo "2. Test Jira custom functions:"
+    fi
     echo "   - last-updates <PROJECT> '<DATE>' [--logs]"
     echo "   - get-latest-changes <ISSUE> '<DATE>' [--logs]"
     echo ""

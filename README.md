@@ -20,26 +20,21 @@
 curl -fsSL https://raw.githubusercontent.com/festoinc/g-project/main/install.sh | bash
 ```
 
-**After installation, setup Jira integration:**
-```bash
-g-project-setup-jira
-```
 
 This will automatically:
 - Install Node.js and Git (if needed)
 - Install additional development tools (jq, curl, ripgrep)
 - Download, build, and install G-PROJECT
 - Install and configure go-jira CLI tool
-- Prompt for Jira credentials (host, email, API token)
+- Optionally prompt for Jira credentials (host, email, API token)
 - Add custom Jira helper functions:
   - `last-updates`: Shows issues updated since a specific time
   - `get-latest-changes`: Shows detailed changes for a specific issue
 - Add to your PATH
 - Clean up temporary files
 
-After installation, restart your terminal or run:
+After installation, you can immediately run:
 ```bash
-source ~/.bashrc  # or ~/.zshrc
 g-project --help
 ```
 
