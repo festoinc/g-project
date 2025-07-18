@@ -5,6 +5,9 @@
 
 set -e
 
+# Installation script version
+INSTALL_VERSION="2025-01-18_15:30:00"
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -856,6 +859,7 @@ main() {
     echo -e "${BLUE}╚══════════════════════════════════════════════════════════════╝${NC}"
     echo ""
     
+    print_status "Running installation version $INSTALL_VERSION"
     print_status "Starting G-PROJECT installation with Jira CLI integration..."
     
     # Check for required tools and install if missing
