@@ -15,29 +15,22 @@
 
 ### Automatic Installation (Recommended)
 
-**Basic installation:**
+**One-liner installation with Jira CLI integration:**
 ```bash
 curl -fsSL https://raw.githubusercontent.com/festoinc/g-project/main/install.sh | bash
 ```
 
-**Installation with Jira CLI integration:**
-```bash
-curl -fsSL https://raw.githubusercontent.com/festoinc/g-project/main/install-with-jira.sh | bash
-```
-
-Both installations will automatically:
+This will automatically:
 - Install Node.js and Git (if needed)
 - Install additional development tools (jq, curl, ripgrep)
 - Download, build, and install G-PROJECT
-- Add to your PATH
-- Clean up temporary files
-
-The Jira integration additionally:
-- Installs go-jira CLI tool
-- Configures Jira credentials (host, email, API token)
-- Adds custom Jira helper functions:
+- Install and configure go-jira CLI tool
+- Prompt for Jira credentials (host, email, API token)
+- Add custom Jira helper functions:
   - `last-updates`: Shows issues updated since a specific time
   - `get-latest-changes`: Shows detailed changes for a specific issue
+- Add to your PATH
+- Clean up temporary files
 
 After installation, restart your terminal or run:
 ```bash

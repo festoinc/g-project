@@ -17,6 +17,7 @@ REPO_URL="https://github.com/festoinc/g-project.git"
 INSTALL_DIR="$HOME/.g-project"
 BIN_DIR="$HOME/.local/bin"
 TEMP_DIR="/tmp/g-project-install"
+JIRA_FUNCTIONS_FILE="$HOME/.jira_functions"
 
 # Function to print colored output
 print_status() {
@@ -38,6 +39,43 @@ print_error() {
 # Function to check if command exists
 command_exists() {
     command -v "$1" >/dev/null 2>&1
+}
+
+# Function to prompt for input with default value
+prompt_input() {
+    local prompt="$1"
+    local default="$2"
+    local result
+    
+    if [ -n "$default" ]; then
+        read -p "$prompt [$default]: " result
+        result="${result:-$default}"
+    else
+        while [ -z "$result" ]; do
+            read -p "$prompt: " result
+            if [ -z "$result" ]; then
+                print_error "This field is required"
+            fi
+        done
+    fi
+    
+    echo "$result"
+}
+
+# Function to prompt for password/token
+prompt_password() {
+    local prompt="$1"
+    local result
+    
+    while [ -z "$result" ]; do
+        read -s -p "$prompt: " result
+        echo ""
+        if [ -z "$result" ]; then
+            print_error "This field is required"
+        fi
+    done
+    
+    echo "$result"
 }
 
 # Function to install Node.js if not present
@@ -80,6 +118,53 @@ install_git() {
         fi
     else
         print_success "Git is already installed ($(git --version))"
+    fi
+}
+
+# Function to install go-jira
+install_go_jira() {
+    if ! command_exists jira; then
+        print_status "Installing go-jira CLI..."
+        
+        # Check the operating system and architecture
+        local OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
+        local ARCH="$(uname -m)"
+        
+        # Map architecture names
+        case "$ARCH" in
+            x86_64)
+                ARCH="amd64"
+                ;;
+            aarch64|arm64)
+                ARCH="arm64"
+                ;;
+            *)
+                print_error "Unsupported architecture: $ARCH"
+                exit 1
+                ;;
+        esac
+        
+        # Download the latest release from GitHub
+        print_status "Downloading go-jira for $OS/$ARCH..."
+        local DOWNLOAD_URL="https://github.com/go-jira/jira/releases/latest/download/jira-${OS}-${ARCH}"
+        
+        if command_exists curl; then
+            curl -fsSL "$DOWNLOAD_URL" -o "$TEMP_DIR/jira"
+        elif command_exists wget; then
+            wget -qO "$TEMP_DIR/jira" "$DOWNLOAD_URL"
+        else
+            print_error "Neither curl nor wget found. Cannot download go-jira."
+            exit 1
+        fi
+        
+        # Make it executable and move to bin directory
+        chmod +x "$TEMP_DIR/jira"
+        mkdir -p "$BIN_DIR"
+        mv "$TEMP_DIR/jira" "$BIN_DIR/jira"
+        
+        print_success "go-jira installed successfully"
+    else
+        print_success "go-jira is already installed ($(jira version 2>/dev/null || echo 'version unknown'))"
     fi
 }
 
@@ -201,28 +286,361 @@ EOF
     rm -rf "$TEMP_DIR"
 }
 
+# Function to configure Jira CLI
+configure_jira_cli() {
+    print_status "Configuring Jira CLI..."
+    
+    # Create .jira.d directory if it doesn't exist
+    mkdir -p "$HOME/.jira.d"
+    
+    # Create config.yml
+    cat > "$HOME/.jira.d/config.yml" << EOF
+endpoint: https://$JIRA_HOST
+user: $JIRA_EMAIL
+password-source: pass
+EOF
+    
+    # Store the API token securely
+    echo "$JIRA_API_TOKEN" > "$HOME/.jira.d/.api_token"
+    chmod 600 "$HOME/.jira.d/.api_token"
+    
+    # Create password script for go-jira
+    cat > "$HOME/.jira.d/pass.sh" << 'EOF'
+#!/bin/bash
+cat "$HOME/.jira.d/.api_token"
+EOF
+    chmod +x "$HOME/.jira.d/pass.sh"
+    
+    # Update config to use the password script
+    cat > "$HOME/.jira.d/config.yml" << EOF
+endpoint: https://$JIRA_HOST
+user: $JIRA_EMAIL
+password-source: script
+password-script: $HOME/.jira.d/pass.sh
+EOF
+    
+    print_success "Jira CLI configured successfully"
+}
+
+# Function to add Jira functions
+add_jira_functions() {
+    print_status "Adding custom Jira functions..."
+    
+    cat > "$JIRA_FUNCTIONS_FILE" << 'EOF'
+# Enhanced last-updates function with --logs flag
+last-updates() {
+    local show_logs=false
+    local project=""
+    local input_date=""
+    
+    # Parse arguments
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            --logs)
+                show_logs=true
+                shift
+                ;;
+            *)
+                if [ -z "$project" ]; then
+                    project="$1"
+                elif [ -z "$input_date" ]; then
+                    input_date="$1"
+                else
+                    echo "Error: Too many arguments"
+                    return 1
+                fi
+                shift
+                ;;
+        esac
+    done
+    
+    if [ -z "$project" ] || [ -z "$input_date" ]; then
+        echo "Usage: last-updates PROJECT_KEY 'DD-MMM-YYYY HH:MM:SS' [--logs]"
+        echo "Example: last-updates PROJ '27-APR-2024 04:03:17'"
+        echo "Example: last-updates PROJ '27-APR-2024 04:03:17' --logs"
+        echo "Note: Input time is assumed to be UTC"
+        echo "      --logs flag shows detailed processing steps"
+        return 1
+    fi
+    
+    if [ "$show_logs" = true ]; then
+        echo "Getting Jira server timezone..."
+    fi
+    
+    # Get Jira server time to extract timezone offset
+    local server_info=$(jira request /rest/api/2/serverInfo)
+    local server_time=$(echo "$server_info" | grep -o '"serverTime"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/.*"\([^"]*\)".*/\1/')
+    
+    # Extract timezone offset from serverTime (e.g., +0300)
+    local timezone_offset=$(echo "$server_time" | grep -o '[+-][0-9][0-9][0-9][0-9]')
+    
+    if [ -z "$timezone_offset" ]; then
+        echo "Error: Could not detect Jira timezone offset"
+        return 1
+    fi
+    
+    if [ "$show_logs" = true ]; then
+        echo "Jira server time: $server_time"
+        echo "Jira timezone offset: $timezone_offset"
+    fi
+    
+    # Convert UTC input to Jira server time by adding/subtracting offset
+    local hours=${timezone_offset:1:2}
+    local minutes=${timezone_offset:3:2}
+    local sign=${timezone_offset:0:1}
+    
+    # Calculate total minutes offset
+    local total_minutes=$((hours * 60 + minutes))
+    
+    local jira_date
+    if [ "$sign" = "+" ]; then
+        # Jira is ahead of UTC, add the offset
+        jira_date=$(date -u -d "$input_date UTC +$total_minutes minutes" +"%Y-%m-%d %H:%M")
+    else
+        # Jira is behind UTC, subtract the offset  
+        jira_date=$(date -u -d "$input_date UTC -$total_minutes minutes" +"%Y-%m-%d %H:%M")
+    fi
+    
+    if [ $? -ne 0 ]; then
+        echo "Error: Invalid date format. Use 'DD-MMM-YYYY HH:MM:SS'"
+        return 1
+    fi
+    
+    if [ "$show_logs" = true ]; then
+        echo "Input UTC time: $input_date"
+        echo "Converted to Jira time (UTC$timezone_offset): $jira_date"
+        echo "JQL: project = '$project' AND updated >= '$jira_date'"
+        echo ""
+    fi
+    
+    jira list --query="project = '$project' AND updated >= '$jira_date'"
+}
+
+# Fixed get-latest-changes function with proper argument handling
+get-latest-changes() {
+    local show_logs=false
+    local issue_key=""
+    local input_date=""
+    
+    # Parse arguments
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            --logs)
+                show_logs=true
+                shift
+                ;;
+            *)
+                if [ -z "$issue_key" ]; then
+                    issue_key="$1"
+                elif [ -z "$input_date" ]; then
+                    input_date="$1"
+                else
+                    echo "Error: Too many arguments"
+                    return 1
+                fi
+                shift
+                ;;
+        esac
+    done
+    
+    if [ -z "$issue_key" ] || [ -z "$input_date" ]; then
+        echo "Usage: get-latest-changes ISSUE_KEY 'DD-MMM-YYYY HH:MM:SS' [--logs]"
+        echo "Example: get-latest-changes AT-17 '14-JUL-2025 16:00:00'"
+        echo "Example: get-latest-changes AT-17 '14-JUL-2025 16:00:00' --logs"
+        echo "Note: Input time is assumed to be UTC"
+        echo "      --logs flag shows detailed processing steps"
+        return 1
+    fi
+    
+    if [ "$show_logs" = true ]; then
+        echo "Getting Jira server timezone..."
+    fi
+    
+    # Get Jira server time to extract timezone offset
+    local server_info=$(jira request /rest/api/2/serverInfo)
+    local server_time=$(echo "$server_info" | grep -o '"serverTime"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/.*"\([^"]*\)".*/\1/')
+    
+    # Extract timezone offset from serverTime (e.g., +0300)
+    local timezone_offset=$(echo "$server_time" | grep -o '[+-][0-9][0-9][0-9][0-9]')
+    
+    if [ -z "$timezone_offset" ]; then
+        echo "Error: Could not detect Jira timezone offset"
+        return 1
+    fi
+    
+    if [ "$show_logs" = true ]; then
+        echo "Jira timezone offset: $timezone_offset"
+    fi
+    
+    # Convert UTC input to Jira server time by adding/subtracting offset
+    local hours=${timezone_offset:1:2}
+    local minutes=${timezone_offset:3:2}
+    local sign=${timezone_offset:0:1}
+    
+    # Calculate total minutes offset
+    local total_minutes=$((hours * 60 + minutes))
+    
+    local jira_date
+    if [ "$sign" = "+" ]; then
+        # Jira is ahead of UTC, add the offset
+        jira_date=$(date -u -d "$input_date UTC +$total_minutes minutes" +"%Y-%m-%dT%H:%M:%S$timezone_offset")
+    else
+        # Jira is behind UTC, subtract the offset  
+        jira_date=$(date -u -d "$input_date UTC -$total_minutes minutes" +"%Y-%m-%dT%H:%M:%S$timezone_offset")
+    fi
+    
+    if [ $? -ne 0 ]; then
+        echo "Error: Invalid date format. Use 'DD-MMM-YYYY HH:MM:SS'"
+        return 1
+    fi
+    
+    if [ "$show_logs" = true ]; then
+        echo "Input UTC time: $input_date"
+        echo "Converted to Jira time: $jira_date"
+        echo "Getting changes for issue $issue_key since $jira_date..."
+        echo ""
+    fi
+    
+    echo "=== CHANGES FOR $issue_key SINCE $jira_date ==="
+    echo ""
+    
+    # Parse and display changelog entries
+    jira request "/rest/api/2/issue/$issue_key?expand=changelog" | jq -r --arg since_date "$jira_date" '
+        .changelog.histories[] | 
+        select(.created >= $since_date) |
+        "CHANGE: " + .created + " by " + .author.displayName + 
+        (.items[] | "\n  • " + .field + ": " + 
+         (if .fromString then "\"" + .fromString + "\"" else "null" end) + 
+         " → " + 
+         (if .toString then "\"" + .toString + "\"" else "null" end)) + "\n"
+    '
+    
+    echo "=== COMMENTS SINCE $jira_date ==="
+    echo ""
+    
+    # Also get comments since the date  
+    jira request "/rest/api/2/issue/$issue_key?expand=changelog" | jq -r --arg since_date "$jira_date" '
+        .fields.comment.comments[]? |
+        select(.created >= $since_date) |
+        "COMMENT: " + .created + " by " + .author.displayName + "\n" +
+        "  " + .body + "\n"
+    '
+}
+EOF
+    
+    print_success "Custom Jira functions added to $JIRA_FUNCTIONS_FILE"
+}
+
+# Function to update shell RC files
+update_shell_rc() {
+    local shell_files=("$HOME/.bashrc" "$HOME/.zshrc" "$HOME/.profile")
+    local updated=false
+    
+    for shell_file in "${shell_files[@]}"; do
+        if [ -f "$shell_file" ]; then
+            # Check if the source line already exists
+            if ! grep -q "source.*\.jira_functions" "$shell_file"; then
+                print_status "Adding jira_functions to $shell_file..."
+                echo "" >> "$shell_file"
+                echo "# Source Jira custom functions" >> "$shell_file"
+                echo "[ -f ~/.jira_functions ] && source ~/.jira_functions" >> "$shell_file"
+                updated=true
+            fi
+        fi
+    done
+    
+    if [ "$updated" = true ]; then
+        print_success "Shell configuration updated to source Jira functions"
+    else
+        print_status "Jira functions already sourced in shell configuration"
+    fi
+}
+
+# Function to collect Jira configuration
+collect_jira_config() {
+    echo ""
+    echo -e "${BLUE}╔══════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${BLUE}║                    JIRA CONFIGURATION                        ║${NC}"
+    echo -e "${BLUE}╚══════════════════════════════════════════════════════════════╝${NC}"
+    echo ""
+    
+    print_status "Please provide your Jira configuration details:"
+    echo ""
+    
+    # Collect Jira host
+    JIRA_HOST=$(prompt_input "Enter your Jira host (e.g., company.atlassian.net)")
+    
+    # Collect Jira email
+    JIRA_EMAIL=$(prompt_input "Enter your Jira email address")
+    
+    # Collect API token
+    echo ""
+    print_status "To get your Jira API token:"
+    echo "1. Go to https://id.atlassian.com/manage-profile/security/api-tokens"
+    echo "2. Click 'Create API token'"
+    echo "3. Give it a name (e.g., 'G-PROJECT CLI')"
+    echo "4. Copy the generated token"
+    echo ""
+    
+    JIRA_API_TOKEN=$(prompt_password "Enter your Jira API token")
+    
+    echo ""
+    print_success "Jira configuration collected"
+}
+
 # Function to verify installation
 verify_installation() {
     print_status "Verifying installation..."
     
+    local errors=0
+    
     if [ -x "$BIN_DIR/g-project" ]; then
         print_success "G-PROJECT installed successfully!"
-        print_status "You can now run: g-project"
-        print_status "Or use: g-project --help"
     else
-        print_error "Installation failed. Please check the errors above."
-        exit 1
+        print_error "G-PROJECT installation failed"
+        errors=$((errors + 1))
+    fi
+    
+    if command_exists jira; then
+        print_success "go-jira CLI installed successfully!"
+        
+        # Test Jira connection
+        print_status "Testing Jira connection..."
+        if jira request /rest/api/2/myself >/dev/null 2>&1; then
+            print_success "Jira connection successful!"
+        else
+            print_error "Jira connection failed. Please check your credentials."
+            errors=$((errors + 1))
+        fi
+    else
+        print_error "go-jira installation failed"
+        errors=$((errors + 1))
+    fi
+    
+    if [ -f "$JIRA_FUNCTIONS_FILE" ]; then
+        print_success "Jira functions installed successfully!"
+    else
+        print_error "Jira functions installation failed"
+        errors=$((errors + 1))
+    fi
+    
+    if [ $errors -eq 0 ]; then
+        print_success "All components installed successfully!"
+        return 0
+    else
+        print_error "Some components failed to install"
+        return 1
     fi
 }
 
 # Main installation function
 main() {
     echo -e "${BLUE}╔══════════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${BLUE}║                    G-PROJECT INSTALLER                       ║${NC}"
+    echo -e "${BLUE}║          G-PROJECT INSTALLER WITH JIRA INTEGRATION          ║${NC}"
     echo -e "${BLUE}╚══════════════════════════════════════════════════════════════╝${NC}"
     echo ""
     
-    print_status "Starting G-PROJECT installation..."
+    print_status "Starting G-PROJECT installation with Jira CLI integration..."
     
     # Check for required tools and install if missing
     install_git
@@ -238,6 +656,17 @@ main() {
     # Install G-PROJECT
     install_g_project
     
+    # Collect Jira configuration
+    collect_jira_config
+    
+    # Install and configure go-jira
+    install_go_jira
+    configure_jira_cli
+    
+    # Add custom Jira functions
+    add_jira_functions
+    update_shell_rc
+    
     # Verify installation
     verify_installation
     
@@ -248,11 +677,19 @@ main() {
     echo ""
     echo -e "${YELLOW}Next steps:${NC}"
     echo "1. Restart your terminal or run: source ~/.bashrc (or ~/.zshrc)"
-    echo "2. Run: g-project --help"
-    echo "3. Create a project: g-project /start-project <PROJECT_HANDLE> <JIRA_USER>"
+    echo "2. Test G-PROJECT: g-project --help"
+    echo "3. Test Jira CLI: jira list -p <YOUR_PROJECT>"
+    echo "4. Test custom functions:"
+    echo "   - last-updates <PROJECT> '<DATE>' [--logs]"
+    echo "   - get-latest-changes <ISSUE> '<DATE>' [--logs]"
     echo ""
-    echo -e "${BLUE}Documentation:${NC} https://github.com/festoinc/g-project"
-    echo -e "${BLUE}Issues:${NC} https://github.com/festoinc/g-project/issues"
+    echo -e "${BLUE}Documentation:${NC}"
+    echo "• G-PROJECT: https://github.com/festoinc/g-project"
+    echo "• go-jira: https://github.com/go-jira/jira"
+    echo ""
+    echo -e "${BLUE}Jira Functions Examples:${NC}"
+    echo "• last-updates PROJ '27-APR-2024 04:03:17' --logs"
+    echo "• get-latest-changes AT-17 '14-JUL-2025 16:00:00'"
 }
 
 # Run main function
