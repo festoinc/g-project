@@ -126,7 +126,14 @@ remove_jira_components() {
         echo "• go-jira CLI tool"
         echo "• Jira configuration (~/.jira.d)"
         echo "• Stored credentials"
-        read -p "Remove Jira CLI components? (y/N): " -n 1 -r < /dev/tty
+        
+        # Try to read from TTY directly
+        if [ -t 0 ]; then
+            read -p "Remove Jira CLI components? (y/N): " -n 1 -r
+        else
+            exec < /dev/tty
+            read -p "Remove Jira CLI components? (y/N): " -n 1 -r
+        fi
         echo ""
         
         if [[ $REPLY =~ ^[Yy]$ ]]; then
@@ -244,7 +251,13 @@ ask_confirmation() {
     echo ""
     echo "Node.js, Git, and other development tools will NOT be removed."
     echo ""
-    read -p "Are you sure you want to continue? (y/N): " -n 1 -r < /dev/tty
+    # Try to read from TTY directly
+    if [ -t 0 ]; then
+        read -p "Are you sure you want to continue? (y/N): " -n 1 -r
+    else
+        exec < /dev/tty
+        read -p "Are you sure you want to continue? (y/N): " -n 1 -r
+    fi
     echo ""
     
     if [[ ! $REPLY =~ ^[Yy]$ ]]; then
@@ -266,7 +279,13 @@ main() {
         print_status "Installation directory: $INSTALL_DIR (not found)"
         print_status "Executable: $BIN_DIR/$EXECUTABLE_NAME (not found)"
         echo ""
-        read -p "Continue with cleanup anyway? (y/N): " -n 1 -r < /dev/tty
+        # Try to read from TTY directly
+        if [ -t 0 ]; then
+            read -p "Continue with cleanup anyway? (y/N): " -n 1 -r
+        else
+            exec < /dev/tty
+            read -p "Continue with cleanup anyway? (y/N): " -n 1 -r
+        fi
         echo ""
         if [[ ! $REPLY =~ ^[Yy]$ ]]; then
             print_status "Uninstall cancelled."
