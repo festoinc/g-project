@@ -189,9 +189,12 @@ install_g_project() {
     print_status "Building G-PROJECT..."
     npm run build
     
-    # Create symlink
-    print_status "Creating executable symlink..."
-    ln -sf "$INSTALL_DIR/packages/cli/dist/src/gemini.js" "$BIN_DIR/g-project"
+    # Create executable wrapper script
+    print_status "Creating executable wrapper..."
+    cat > "$BIN_DIR/g-project" << 'EOF'
+#!/bin/bash
+exec node "$HOME/.g-project/packages/cli/dist/src/gemini.js" "$@"
+EOF
     chmod +x "$BIN_DIR/g-project"
     
     # Clean up temp directory

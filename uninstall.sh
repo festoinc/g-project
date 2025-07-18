@@ -1,7 +1,8 @@
 #!/bin/bash
 
-# G-PROJECT Uninstaller Script
+# G-PROJECT Uninstall Script
 # Usage: curl -fsSL https://raw.githubusercontent.com/festoinc/g-project/main/uninstall.sh | bash
+# Or: bash uninstall.sh
 
 set -e
 
@@ -15,7 +16,7 @@ NC='\033[0m' # No Color
 # Configuration
 INSTALL_DIR="$HOME/.g-project"
 BIN_DIR="$HOME/.local/bin"
-EXECUTABLE="$BIN_DIR/g-project"
+EXECUTABLE_NAME="g-project"
 
 # Function to print colored output
 print_status() {
@@ -34,73 +35,80 @@ print_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
-# Function to remove G-PROJECT installation
-remove_g_project() {
-    print_status "Removing G-PROJECT installation..."
+# Function to check if command exists
+command_exists() {
+    command -v "$1" >/dev/null 2>&1
+}
+
+# Function to remove G-PROJECT executable
+remove_executable() {
+    local executable_path="$BIN_DIR/$EXECUTABLE_NAME"
     
-    # Remove installation directory
-    if [ -d "$INSTALL_DIR" ]; then
-        print_status "Removing $INSTALL_DIR..."
-        rm -rf "$INSTALL_DIR"
-        print_success "Installation directory removed"
+    if [ -f "$executable_path" ]; then
+        print_status "Removing G-PROJECT executable..."
+        rm -f "$executable_path"
+        print_success "Removed $executable_path"
     else
-        print_warning "Installation directory not found: $INSTALL_DIR"
-    fi
-    
-    # Remove executable
-    if [ -f "$EXECUTABLE" ]; then
-        print_status "Removing executable $EXECUTABLE..."
-        rm -f "$EXECUTABLE"
-        print_success "Executable removed"
-    else
-        print_warning "Executable not found: $EXECUTABLE"
+        print_status "G-PROJECT executable not found at $executable_path"
     fi
 }
 
-# Function to remove PATH entry
-remove_from_path() {
-    print_status "Checking PATH entries..."
-    
+# Function to remove installation directory
+remove_installation_directory() {
+    if [ -d "$INSTALL_DIR" ]; then
+        print_status "Removing G-PROJECT installation directory..."
+        rm -rf "$INSTALL_DIR"
+        print_success "Removed $INSTALL_DIR"
+    else
+        print_status "G-PROJECT installation directory not found at $INSTALL_DIR"
+    fi
+}
+
+# Function to clean PATH entries from shell RC files
+clean_path_entries() {
     local shell_files=("$HOME/.bashrc" "$HOME/.zshrc" "$HOME/.profile")
-    local removed=false
+    local cleaned=false
     
     for shell_file in "${shell_files[@]}"; do
         if [ -f "$shell_file" ]; then
-            # Check if the PATH entry exists
-            if grep -q "Added by G-PROJECT installer" "$shell_file"; then
-                print_status "Removing PATH entry from $shell_file..."
+            # Check if the file contains G-PROJECT PATH entries
+            if grep -q "# Added by G-PROJECT installer" "$shell_file" || grep -q "$BIN_DIR" "$shell_file"; then
+                print_status "Cleaning PATH entries from $shell_file..."
                 
                 # Create a backup
-                cp "$shell_file" "$shell_file.backup"
+                cp "$shell_file" "$shell_file.backup.$(date +%Y%m%d_%H%M%S)"
                 
-                # Remove the G-PROJECT PATH entry
-                sed -i '/# Added by G-PROJECT installer/,+1d' "$shell_file"
+                # Remove G-PROJECT related lines
+                # Remove the comment line and the export line that follows it
+                sed -i '/# Added by G-PROJECT installer/,+1d' "$shell_file" 2>/dev/null || true
                 
-                print_success "PATH entry removed from $shell_file"
-                removed=true
+                # Also remove any standalone PATH entries for our bin directory
+                sed -i "\|export PATH.*$BIN_DIR|d" "$shell_file" 2>/dev/null || true
+                
+                print_success "Cleaned $shell_file (backup created)"
+                cleaned=true
             fi
         fi
     done
     
-    if [ "$removed" = false ]; then
-        print_warning "No G-PROJECT PATH entries found in shell configuration files"
+    if [ "$cleaned" = true ]; then
+        print_warning "Shell configuration files have been modified. You may need to restart your terminal or run 'source ~/.bashrc' (or ~/.zshrc) to apply changes."
+    else
+        print_status "No G-PROJECT PATH entries found in shell configuration files"
     fi
 }
 
-# Function to clean up remaining files
-cleanup_remaining() {
-    print_status "Cleaning up remaining files..."
-    
-    # Remove any remaining symlinks
-    find "$BIN_DIR" -name "g-project*" -type l -delete 2>/dev/null || true
-    
-    # Remove empty directories
-    if [ -d "$BIN_DIR" ] && [ -z "$(ls -A "$BIN_DIR")" ]; then
-        rmdir "$BIN_DIR"
-        print_status "Removed empty directory: $BIN_DIR"
+# Function to check for remaining G-PROJECT processes
+check_running_processes() {
+    if command_exists pgrep; then
+        local running_processes=$(pgrep -f "g-project\|gemini\.js" 2>/dev/null || true)
+        if [ ! -z "$running_processes" ]; then
+            print_warning "Found running G-PROJECT processes:"
+            ps -p $running_processes -o pid,cmd 2>/dev/null || true
+            echo ""
+            print_warning "You may want to stop these processes manually if needed."
+        fi
     fi
-    
-    print_success "Cleanup completed"
 }
 
 # Function to verify uninstallation
@@ -108,69 +116,127 @@ verify_uninstallation() {
     print_status "Verifying uninstallation..."
     
     local issues=0
+    local executable_path="$BIN_DIR/$EXECUTABLE_NAME"
     
     if [ -d "$INSTALL_DIR" ]; then
         print_warning "Installation directory still exists: $INSTALL_DIR"
         issues=$((issues + 1))
     fi
     
-    if [ -f "$EXECUTABLE" ]; then
-        print_warning "Executable still exists: $EXECUTABLE"
+    if [ -f "$executable_path" ]; then
+        print_warning "Executable still exists: $executable_path"
         issues=$((issues + 1))
     fi
     
-    if command -v g-project >/dev/null 2>&1; then
-        print_warning "g-project command is still available (may need to restart terminal)"
+    if command_exists g-project; then
+        print_warning "g-project command is still available in PATH (restart terminal)"
         issues=$((issues + 1))
     fi
     
     if [ $issues -eq 0 ]; then
         print_success "G-PROJECT has been completely removed!"
+        return 0
     else
-        print_warning "Some issues were found during uninstallation"
+        print_warning "Some components may still be present"
+        return 1
     fi
 }
 
-# Main uninstallation function
+# Function to show cleanup summary
+show_cleanup_summary() {
+    echo ""
+    echo -e "${GREEN}╔══════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${GREEN}║                  UNINSTALL COMPLETE!                         ║${NC}"
+    echo -e "${GREEN}╚══════════════════════════════════════════════════════════════╝${NC}"
+    echo ""
+    echo -e "${BLUE}What was removed:${NC}"
+    echo "• G-PROJECT installation directory: $INSTALL_DIR"
+    echo "• G-PROJECT executable: $BIN_DIR/$EXECUTABLE_NAME"
+    echo "• PATH entries from shell configuration files"
+    echo ""
+    echo -e "${BLUE}What was NOT removed:${NC}"
+    echo "• Node.js and npm"
+    echo "• Git"
+    echo "• Any project-specific settings/settings.md files"
+    echo "• Other development tools installed during setup"
+    echo ""
+    echo -e "${YELLOW}Next steps:${NC}"
+    echo "1. Restart your terminal or run: source ~/.bashrc (or ~/.zshrc)"
+    echo "2. Verify removal by running: g-project --version (should fail)"
+    echo ""
+    echo -e "${BLUE}Need to reinstall?${NC}"
+    echo "Run: curl -fsSL https://raw.githubusercontent.com/festoinc/g-project/main/install.sh | bash"
+}
+
+# Function to ask for confirmation
+ask_confirmation() {
+    echo -e "${YELLOW}This will remove G-PROJECT from your system.${NC}"
+    echo ""
+    echo "The following will be removed:"
+    echo "• Installation directory: $INSTALL_DIR"
+    echo "• Executable: $BIN_DIR/$EXECUTABLE_NAME"
+    echo "• PATH entries from shell configuration files"
+    echo ""
+    echo "Node.js, Git, and other development tools will NOT be removed."
+    echo ""
+    read -p "Are you sure you want to continue? (y/N): " -n 1 -r
+    echo ""
+    
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        print_status "Uninstall cancelled."
+        exit 0
+    fi
+}
+
+# Main uninstall function
 main() {
     echo -e "${BLUE}╔══════════════════════════════════════════════════════════════╗${NC}"
     echo -e "${BLUE}║                   G-PROJECT UNINSTALLER                      ║${NC}"
     echo -e "${BLUE}╚══════════════════════════════════════════════════════════════╝${NC}"
     echo ""
     
-    print_status "Starting G-PROJECT uninstallation..."
-    
-    # Ask for confirmation
-    echo -e "${YELLOW}This will remove G-PROJECT from your system.${NC}"
-    echo -e "${YELLOW}Are you sure you want to continue? (y/N)${NC}"
-    read -r response
-    
-    if [[ ! "$response" =~ ^[Yy]$ ]]; then
-        print_status "Uninstallation cancelled."
-        exit 0
+    # Check if G-PROJECT is actually installed
+    if [ ! -d "$INSTALL_DIR" ] && [ ! -f "$BIN_DIR/$EXECUTABLE_NAME" ]; then
+        print_warning "G-PROJECT does not appear to be installed."
+        print_status "Installation directory: $INSTALL_DIR (not found)"
+        print_status "Executable: $BIN_DIR/$EXECUTABLE_NAME (not found)"
+        echo ""
+        read -p "Continue with cleanup anyway? (y/N): " -n 1 -r
+        echo ""
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            print_status "Uninstall cancelled."
+            exit 0
+        fi
     fi
     
-    # Remove G-PROJECT
-    remove_g_project
+    # Ask for confirmation (unless running in non-interactive mode)
+    if [ -t 0 ]; then
+        ask_confirmation
+    fi
     
-    # Remove PATH entries
-    remove_from_path
-    
-    # Clean up remaining files
-    cleanup_remaining
-    
-    # Verify uninstallation
-    verify_uninstallation
-    
+    print_status "Starting G-PROJECT uninstall..."
     echo ""
-    echo -e "${GREEN}╔══════════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${GREEN}║                 UNINSTALLATION COMPLETE!                     ║${NC}"
-    echo -e "${GREEN}╚══════════════════════════════════════════════════════════════╝${NC}"
-    echo ""
-    echo -e "${YELLOW}Note:${NC} You may need to restart your terminal for PATH changes to take effect."
-    echo ""
-    echo -e "${BLUE}Thank you for using G-PROJECT!${NC}"
+    
+    # Check for running processes
+    check_running_processes
+    
+    # Remove components
+    remove_executable
+    remove_installation_directory
+    clean_path_entries
+    
+    # Verify and show summary
+    if verify_uninstallation; then
+        show_cleanup_summary
+    else
+        echo ""
+        print_warning "Uninstall completed with some issues. See messages above."
+        show_cleanup_summary
+    fi
 }
+
+# Handle script interruption
+trap 'echo ""; print_error "Uninstall interrupted."; exit 1' INT TERM
 
 # Run main function
 main "$@"
