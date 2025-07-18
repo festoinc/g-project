@@ -48,11 +48,13 @@ prompt_input() {
     local result
     
     if [ -n "$default" ]; then
-        read -p "$prompt [$default]: " result
+        printf "%s [%s]: " "$prompt" "$default"
+        read -r result
         result="${result:-$default}"
     else
         while [ -z "$result" ]; do
-            read -p "$prompt: " result
+            printf "%s: " "$prompt"
+            read -r result
             if [ -z "$result" ]; then
                 print_error "This field is required"
             fi
@@ -68,7 +70,8 @@ prompt_password() {
     local result
     
     while [ -z "$result" ]; do
-        read -s -p "$prompt: " result
+        printf "%s: " "$prompt"
+        read -r -s result
         echo ""
         if [ -z "$result" ]; then
             print_error "This field is required"
@@ -563,6 +566,21 @@ collect_jira_config() {
     echo -e "${BLUE}║                    JIRA CONFIGURATION                        ║${NC}"
     echo -e "${BLUE}╚══════════════════════════════════════════════════════════════╝${NC}"
     echo ""
+    
+    # Check if we're running in a pipe (no TTY)
+    if [ ! -t 0 ]; then
+        print_error "Interactive configuration required but not available in piped execution."
+        print_error "Please run the installer directly instead:"
+        echo ""
+        echo "  curl -fsSL https://raw.githubusercontent.com/festoinc/g-project/main/install.sh > install.sh"
+        echo "  bash install.sh"
+        echo ""
+        print_error "Then the installer will prompt you for:"
+        echo "  1. Your Jira host (e.g., company.atlassian.net)"
+        echo "  2. Your Jira email address"
+        echo "  3. Your Jira API token"
+        exit 1
+    fi
     
     print_status "Setting up Jira CLI integration..."
     print_status "You will be prompted for 3 pieces of information:"
