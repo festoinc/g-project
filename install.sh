@@ -6,7 +6,7 @@
 set -e
 
 # Installation script version
-INSTALL_VERSION="v17"
+INSTALL_VERSION="v18"
 
 # Colors for output
 RED='\033[0;31m'
@@ -700,7 +700,7 @@ INNER_EOF
 # Project Settings
 DEFAULT_PROJECT_HANDLE=$default_project
 JIRA_USER=$jira_email
-LAST_STAND_UP=$(date -u -d "24 hours ago" +"%a %b %d %H:%M")
+LAST_STAND_UP=$(date -u -d "24 hours ago" +"%Y-%b-%d %H:%M")
 
 
 #Role description
