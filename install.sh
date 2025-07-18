@@ -773,12 +773,46 @@ main() {
     echo -e "${GREEN}╔══════════════════════════════════════════════════════════════╗${NC}"
     echo -e "${GREEN}║                   INSTALLATION COMPLETE!                     ║${NC}"
     echo -e "${GREEN}╚══════════════════════════════════════════════════════════════╝${NC}"
+    # Source shell configuration files to update PATH
+    print_status "Updating shell environment..."
+    if [ -f "$HOME/.bashrc" ] && [[ "$SHELL" == *"bash"* ]]; then
+        set +e  # Don't exit on error
+        . "$HOME/.bashrc" 2>/dev/null || true
+        set -e
+        print_success "Sourced ~/.bashrc"
+    elif [ -f "$HOME/.zshrc" ] && [[ "$SHELL" == *"zsh"* ]]; then
+        set +e  # Don't exit on error
+        . "$HOME/.zshrc" 2>/dev/null || true
+        set -e
+        print_success "Sourced ~/.zshrc"
+    elif [ -f "$HOME/.profile" ]; then
+        set +e  # Don't exit on error
+        . "$HOME/.profile" 2>/dev/null || true
+        set -e
+        print_success "Sourced ~/.profile"
+    fi
+    
+    # Update PATH for current session
+    export PATH="$PATH:$BIN_DIR"
+    
+    # Test if commands are available
+    if command_exists g-project; then
+        print_success "g-project is available in PATH"
+    else
+        print_warning "g-project may not be in PATH. You may need to restart your terminal."
+    fi
+    
+    if command_exists jira; then
+        print_success "jira is available in PATH"
+    else
+        print_warning "jira may not be in PATH. You may need to restart your terminal."
+    fi
+    
     echo ""
     echo -e "${YELLOW}Next steps:${NC}"
-    echo "1. Restart your terminal or run: source ~/.bashrc (or ~/.zshrc)"
-    echo "2. Test G-PROJECT: g-project --help"
-    echo "3. Setup Jira integration: g-project-setup-jira"
-    echo "4. After Jira setup, test custom functions:"
+    echo "1. Test G-PROJECT: g-project --help"
+    echo "2. Setup Jira integration: g-project-setup-jira"
+    echo "3. After Jira setup, test custom functions:"
     echo "   - last-updates <PROJECT> '<DATE>' [--logs]"
     echo "   - get-latest-changes <ISSUE> '<DATE>' [--logs]"
     echo ""
