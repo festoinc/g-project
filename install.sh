@@ -94,7 +94,7 @@ install_go_jira() {
         local OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
         local ARCH="$(uname -m)"
         
-        # Map architecture names
+        # Map architecture names for go-jira format
         case "$ARCH" in
             x86_64)
                 ARCH="amd64"
@@ -108,17 +108,51 @@ install_go_jira() {
                 ;;
         esac
         
-        # Download the latest release from GitHub
-        print_status "Downloading go-jira for $OS/$ARCH..."
-        local DOWNLOAD_URL="https://github.com/go-jira/jira/releases/latest/download/jira-${OS}-${ARCH}"
+        # Map OS names for go-jira format
+        case "$OS" in
+            darwin)
+                OS="darwin"
+                ;;
+            linux)
+                OS="linux"
+                ;;
+            *)
+                print_error "Unsupported operating system: $OS"
+                exit 1
+                ;;
+        esac
+        
+        # Get the latest release version
+        print_status "Getting latest go-jira release..."
+        local VERSION
+        if command_exists curl; then
+            VERSION=$(curl -s https://api.github.com/repos/go-jira/jira/releases/latest | grep '"tag_name"' | sed 's/.*"tag_name": "\(.*\)".*/\1/')
+        elif command_exists wget; then
+            VERSION=$(wget -qO- https://api.github.com/repos/go-jira/jira/releases/latest | grep '"tag_name"' | sed 's/.*"tag_name": "\(.*\)".*/\1/')
+        else
+            print_error "Neither curl nor wget found. Cannot get latest version."
+            exit 1
+        fi
+        
+        if [ -z "$VERSION" ]; then
+            print_error "Could not determine latest go-jira version"
+            exit 1
+        fi
+        
+        # Download the release
+        print_status "Downloading go-jira $VERSION for $OS/$ARCH..."
+        local DOWNLOAD_URL="https://github.com/go-jira/jira/releases/download/${VERSION}/jira-${OS}-${ARCH}"
         
         if command_exists curl; then
-            curl -fsSL "$DOWNLOAD_URL" -o "$TEMP_DIR/jira"
+            if ! curl -fsSL "$DOWNLOAD_URL" -o "$TEMP_DIR/jira"; then
+                print_error "Download failed from $DOWNLOAD_URL"
+                exit 1
+            fi
         elif command_exists wget; then
-            wget -qO "$TEMP_DIR/jira" "$DOWNLOAD_URL"
-        else
-            print_error "Neither curl nor wget found. Cannot download go-jira."
-            exit 1
+            if ! wget -qO "$TEMP_DIR/jira" "$DOWNLOAD_URL"; then
+                print_error "Download failed from $DOWNLOAD_URL"
+                exit 1
+            fi
         fi
         
         # Make it executable and move to bin directory
@@ -126,7 +160,7 @@ install_go_jira() {
         mkdir -p "$BIN_DIR"
         mv "$TEMP_DIR/jira" "$BIN_DIR/jira"
         
-        print_success "go-jira installed successfully"
+        print_success "go-jira $VERSION installed successfully"
     else
         print_success "go-jira is already installed ($(jira version 2>/dev/null || echo 'version unknown'))"
     fi
