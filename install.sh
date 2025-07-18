@@ -165,6 +165,9 @@ install_go_jira() {
         
         print_status "Download URL: $DOWNLOAD_URL"
         
+        # Ensure temp directory exists
+        mkdir -p "$TEMP_DIR"
+        
         if command_exists curl; then
             if ! curl -fsSL "$DOWNLOAD_URL" -o "$TEMP_DIR/jira"; then
                 print_error "Download failed from $DOWNLOAD_URL"
