@@ -564,7 +564,11 @@ collect_jira_config() {
     echo -e "${BLUE}╚══════════════════════════════════════════════════════════════╝${NC}"
     echo ""
     
-    print_status "Please provide your Jira configuration details:"
+    print_status "Setting up Jira CLI integration..."
+    print_status "You will be prompted for 3 pieces of information:"
+    echo "  1. Your Jira host (e.g., company.atlassian.net)"
+    echo "  2. Your Jira email address"
+    echo "  3. Your Jira API token"
     echo ""
     
     # Collect Jira host
@@ -585,7 +589,7 @@ collect_jira_config() {
     JIRA_API_TOKEN=$(prompt_password "Enter your Jira API token")
     
     echo ""
-    print_success "Jira configuration collected"
+    print_success "Jira configuration completed"
 }
 
 # Function to verify installation
