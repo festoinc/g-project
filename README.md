@@ -15,14 +15,14 @@
 
 ### Automatic Installation (Recommended)
 
-**Interactive installation with Jira CLI integration:**
-```bash
-curl -fsSL https://raw.githubusercontent.com/festoinc/g-project/main/install.sh > install.sh && bash install.sh
-```
-
-**Alternative one-liner** (requires manual setup of Jira later):
+**One-liner installation:**
 ```bash
 curl -fsSL https://raw.githubusercontent.com/festoinc/g-project/main/install.sh | bash
+```
+
+**After installation, setup Jira integration:**
+```bash
+g-project-setup-jira
 ```
 
 This will automatically:
