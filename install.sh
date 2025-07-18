@@ -139,18 +139,21 @@ install_go_jira() {
         print_status "Getting latest go-jira release..."
         local VERSION
         if command_exists curl; then
-            VERSION=$(curl -s https://api.github.com/repos/go-jira/jira/releases/latest | grep '"tag_name"' | sed 's/.*"tag_name": "\(.*\)".*/\1/')
+            VERSION=$(curl -s https://api.github.com/repos/go-jira/jira/releases/latest | grep '"tag_name"' | head -1 | sed 's/.*"tag_name": *"\([^"]*\)".*/\1/')
         elif command_exists wget; then
-            VERSION=$(wget -qO- https://api.github.com/repos/go-jira/jira/releases/latest | grep '"tag_name"' | sed 's/.*"tag_name": "\(.*\)".*/\1/')
+            VERSION=$(wget -qO- https://api.github.com/repos/go-jira/jira/releases/latest | grep '"tag_name"' | head -1 | sed 's/.*"tag_name": *"\([^"]*\)".*/\1/')
         else
             print_error "Neither curl nor wget found. Cannot get latest version."
             exit 1
         fi
         
         if [ -z "$VERSION" ]; then
-            print_error "Could not determine latest go-jira version"
-            exit 1
+            print_warning "Could not determine latest go-jira version from GitHub API"
+            print_status "Using fallback version v1.0.27"
+            VERSION="v1.0.27"
         fi
+        
+        print_status "Found go-jira version: $VERSION"
         
         # Download the release
         print_status "Downloading go-jira $VERSION for $OS/$ARCH..."
@@ -160,16 +163,32 @@ install_go_jira() {
         fi
         local DOWNLOAD_URL="https://github.com/go-jira/jira/releases/download/${VERSION}/${FILENAME}"
         
+        print_status "Download URL: $DOWNLOAD_URL"
+        
         if command_exists curl; then
             if ! curl -fsSL "$DOWNLOAD_URL" -o "$TEMP_DIR/jira"; then
                 print_error "Download failed from $DOWNLOAD_URL"
+                print_error "This may be due to:"
+                print_error "1. Network connectivity issues"
+                print_error "2. GitHub rate limiting"
+                print_error "3. The binary doesn't exist for your platform"
                 exit 1
             fi
         elif command_exists wget; then
             if ! wget -qO "$TEMP_DIR/jira" "$DOWNLOAD_URL"; then
                 print_error "Download failed from $DOWNLOAD_URL"
+                print_error "This may be due to:"
+                print_error "1. Network connectivity issues"
+                print_error "2. GitHub rate limiting"
+                print_error "3. The binary doesn't exist for your platform"
                 exit 1
             fi
+        fi
+        
+        # Check if the downloaded file exists and has content
+        if [ ! -f "$TEMP_DIR/jira" ] || [ ! -s "$TEMP_DIR/jira" ]; then
+            print_error "Downloaded file is empty or missing"
+            exit 1
         fi
         
         # Make it executable and move to bin directory
