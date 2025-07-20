@@ -664,11 +664,49 @@ INNER_EOF
     while [ "$connection_successful" = false ] && [ $attempt -le $max_attempts ]; do
         print_status "Testing Jira connection (attempt $attempt/$max_attempts)..."
         
-        if timeout 10 jira request /rest/api/2/myself >/dev/null 2>&1; then
-            print_success "Jira connection successful!"
-            connection_successful=true
+        # First test with curl to validate basic auth
+        print_status "Step 1: Testing credentials with curl..."
+        local curl_response
+        local curl_exit_code
+        curl_response=$(timeout 10 curl -s -w "\n%{http_code}" -u "$jira_email:$jira_api_token" "https://$jira_host/rest/api/2/myself" 2>/dev/null)
+        curl_exit_code=$?
+        
+        if [ $curl_exit_code -eq 0 ]; then
+            local http_code=$(echo "$curl_response" | tail -n1)
+            local response_body=$(echo "$curl_response" | head -n -1)
+            
+            if [ "$http_code" = "200" ]; then
+                print_success "✓ Curl authentication successful (HTTP $http_code)"
+                local username=$(echo "$response_body" | jq -r '.displayName // .name // "Unknown"' 2>/dev/null || echo "Unknown")
+                print_status "  Authenticated as: $username"
+                
+                # Now test with jira CLI
+                print_status "Step 2: Testing with Jira CLI..."
+                if timeout 10 jira request /rest/api/2/myself >/dev/null 2>&1; then
+                    print_success "✓ Jira CLI connection successful!"
+                    connection_successful=true
+                else
+                    print_error "✗ Jira CLI failed (but curl worked)"
+                    print_status "  This suggests a Jira CLI configuration issue"
+                fi
+            else
+                print_error "✗ Curl authentication failed (HTTP $http_code)"
+                if [ "$http_code" = "401" ]; then
+                    print_status "  → Invalid credentials (email or API token)"
+                elif [ "$http_code" = "403" ]; then
+                    print_status "  → Access forbidden (check permissions)"
+                elif [ "$http_code" = "404" ]; then
+                    print_status "  → Jira host not found (check URL)"
+                else
+                    print_status "  → Response: $(echo "$response_body" | head -c 200)"
+                fi
+            fi
         else
-            print_error "Jira connection failed!"
+            print_error "✗ Curl connection failed (exit code: $curl_exit_code)"
+            print_status "  → Network connectivity or DNS issue"
+        fi
+        
+        if [ "$connection_successful" = false ]; then
             
             if [ $attempt -lt $max_attempts ]; then
                 echo ""
