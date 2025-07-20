@@ -6,7 +6,7 @@
 set -e
 
 # Installation script version
-INSTALL_VERSION="v19"
+INSTALL_VERSION="v20"
 
 # Colors for output
 RED='\033[0;31m'
@@ -972,6 +972,57 @@ PLANNING_EOF
 STANDUP_EOF
         
         print_success "Custom commands created at: $project_directory/custom_commands/"
+        
+        # Setup JIRA_API_TOKEN in shell profile for convenient CLI usage
+        echo ""
+        print_status "🔧 Setting up Jira CLI environment variable..."
+        
+        local jira_env_line='export JIRA_API_TOKEN=$(cat ~/.jira.d/.api_token)'
+        local shell_updated=false
+        
+        # Check current shell and add to appropriate profile
+        if [[ "$SHELL" == *"bash"* ]] && [ -f "$HOME/.bashrc" ]; then
+            # Check if already exists to avoid duplicates
+            if ! grep -q "JIRA_API_TOKEN.*\.jira\.d" "$HOME/.bashrc" 2>/dev/null; then
+                echo "" >> "$HOME/.bashrc"
+                echo "# Jira CLI API Token (added by G-PROJECT installer)" >> "$HOME/.bashrc"
+                echo "$jira_env_line" >> "$HOME/.bashrc"
+                print_success "✓ Added JIRA_API_TOKEN to ~/.bashrc"
+                shell_updated=true
+            else
+                print_status "JIRA_API_TOKEN already exists in ~/.bashrc"
+            fi
+        elif [[ "$SHELL" == *"zsh"* ]] && [ -f "$HOME/.zshrc" ]; then
+            # Check if already exists to avoid duplicates
+            if ! grep -q "JIRA_API_TOKEN.*\.jira\.d" "$HOME/.zshrc" 2>/dev/null; then
+                echo "" >> "$HOME/.zshrc"
+                echo "# Jira CLI API Token (added by G-PROJECT installer)" >> "$HOME/.zshrc"
+                echo "$jira_env_line" >> "$HOME/.zshrc"
+                print_success "✓ Added JIRA_API_TOKEN to ~/.zshrc"
+                shell_updated=true
+            else
+                print_status "JIRA_API_TOKEN already exists in ~/.zshrc"
+            fi
+        else
+            # Fallback to .profile for other shells
+            if ! grep -q "JIRA_API_TOKEN.*\.jira\.d" "$HOME/.profile" 2>/dev/null; then
+                echo "" >> "$HOME/.profile"
+                echo "# Jira CLI API Token (added by G-PROJECT installer)" >> "$HOME/.profile"
+                echo "$jira_env_line" >> "$HOME/.profile"
+                print_success "✓ Added JIRA_API_TOKEN to ~/.profile"
+                shell_updated=true
+            else
+                print_status "JIRA_API_TOKEN already exists in ~/.profile"
+            fi
+        fi
+        
+        if [ "$shell_updated" = true ]; then
+            print_status "After installation, you can use jira commands directly:"
+            echo "  • jira request /rest/api/2/myself"
+            echo "  • jira request /rest/api/2/project"
+            echo "  • jira list -p $default_project"
+            print_status "Restart your terminal or run 'source ~/.bashrc' (or ~/.zshrc) to activate"
+        fi
         
         # Export the project directory for use in main function
         export G_PROJECT_DIR="$project_directory"
