@@ -657,11 +657,101 @@ INNER_EOF
 
     print_success "Jira CLI configured successfully"
 
-    # Test connection with timeout
-    print_status "Testing Jira connection..."
-    if timeout 10 jira request /rest/api/2/myself >/dev/null 2>&1; then
-        print_success "Jira connection successful!"
+    # Test connection with retry loop
+    local connection_successful=false
+    local max_attempts=3
+    local attempt=1
+    
+    while [ "$connection_successful" = false ] && [ $attempt -le $max_attempts ]; do
+        print_status "Testing Jira connection (attempt $attempt/$max_attempts)..."
         
+        if timeout 10 jira request /rest/api/2/myself >/dev/null 2>&1; then
+            print_success "Jira connection successful!"
+            connection_successful=true
+        else
+            print_error "Jira connection failed!"
+            
+            if [ $attempt -lt $max_attempts ]; then
+                echo ""
+                print_status "Connection failed. This could be due to:"
+                echo "  • Incorrect Jira host URL"
+                echo "  • Invalid email address"
+                echo "  • Wrong or expired API token"
+                echo "  • Network connectivity issues"
+                echo ""
+                print_status "Let's try again with new credentials..."
+                echo ""
+                
+                # Reset variables for retry
+                jira_host=""
+                jira_email=""
+                jira_api_token=""
+                
+                # Collect Jira host again
+                while [ -z "$jira_host" ]; do
+                    printf "Enter your Jira host (e.g., company.atlassian.net): "
+                    read -r jira_host
+                    if [ -z "$jira_host" ]; then
+                        print_error "This field is required"
+                    fi
+                done
+                
+                # Collect Jira email again
+                while [ -z "$jira_email" ]; do
+                    printf "Enter your Jira email address: "
+                    read -r jira_email
+                    if [ -z "$jira_email" ]; then
+                        print_error "This field is required"
+                    fi
+                done
+                
+                # Collect API token again
+                echo ""
+                print_status "To get your Jira API token:"
+                echo "1. Go to https://id.atlassian.com/manage-profile/security/api-tokens"
+                echo "2. Click 'Create API token'"
+                echo "3. Give it a name (e.g., 'G-PROJECT CLI')"
+                echo "4. Copy the generated token"
+                echo ""
+                
+                while [ -z "$jira_api_token" ]; do
+                    printf "Enter your Jira API token: "
+                    read -r -s jira_api_token
+                    echo ""
+                    if [ -z "$jira_api_token" ]; then
+                        print_error "This field is required"
+                    fi
+                done
+                
+                echo ""
+                print_status "Reconfiguring Jira CLI with new credentials..."
+                
+                # Update credentials
+                echo "$jira_api_token" > "$HOME/.jira.d/.api_token"
+                chmod 600 "$HOME/.jira.d/.api_token"
+                
+                # Update config
+                cat > "$HOME/.jira.d/config.yml" << INNER_EOF
+endpoint: https://$jira_host
+user: $jira_email
+password-source: script
+password-script: $HOME/.jira.d/pass.sh
+INNER_EOF
+                
+                print_success "Jira CLI reconfigured with new credentials"
+            else
+                print_error "Maximum connection attempts reached. Installation will exit."
+                print_status "Please check your credentials and try running the installation again."
+                print_status "You can also run 'g-project-setup-jira' after installation to configure Jira."
+                exit 1
+            fi
+        fi
+        
+        attempt=$((attempt + 1))
+    done
+    
+    # Continue with project setup only if connection was successful
+    if [ "$connection_successful" = true ]; then
         # Get project list and ask for default project
         echo ""
         print_status "Getting available Jira projects..."
@@ -826,11 +916,6 @@ STANDUP_EOF
         
         # Export the project directory for use in main function
         export G_PROJECT_DIR="$project_directory"
-        
-    else
-        print_warning "Jira connection test failed or timed out."
-        print_status "You can test the connection later by running: jira request /rest/api/2/myself"
-        print_status "If there are issues, reconfigure by running 'g-project-setup-jira'"
     fi
 
     print_success "Jira setup completed successfully!"
