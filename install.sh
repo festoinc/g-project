@@ -797,6 +797,33 @@ SETTINGS_EOF
         
         print_success "Project settings created at: $project_directory/settings/settings.md"
         
+        # Create custom_commands directory with example files
+        print_status "Creating custom_commands directory with examples..."
+        mkdir -p "$project_directory/custom_commands"
+        
+        # Create planning command example
+        cat > "$project_directory/custom_commands/planning" << 'PLANNING_EOF'
+-Ask user to provide task ids that team plans to dliver this week.
+-Ask user to provide task ids that will be worked on but not planned to be relesead this week 
+-run date +%V to get week of the year number
+-create lablel week_{week_of_the_year}_to_release and apply ot tasks that would be released 
+-create lablel week_{week_of_the_year}_progress and apply ot tasks that would be worked on
+-print summary
+PLANNING_EOF
+        
+        # Create stand-up command example
+        cat > "$project_directory/custom_commands/stand-up" << 'STANDUP_EOF'
+- run last-updates {project_handle} {last_standup} it will give you list of the tasks that was changed since last stand-up
+- iterate theough each task and run get-latest-changes {task_handle} {last_standup} it will give you changes that happened to task since last stand-up
+-  Based on information you collected please prepare stand-up report draft to explain what team have been doing since last stand-up.
+- run  date -u 
+- update /settings/settings.md last standup with   date -u 
+
+
+STANDUP_EOF
+        
+        print_success "Custom commands created at: $project_directory/custom_commands/"
+        
         # Export the project directory for use in main function
         export G_PROJECT_DIR="$project_directory"
         
