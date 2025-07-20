@@ -1,0 +1,6 @@
+-Ask user to provide task ids that team plans to dliver this week.
+-Ask user to provide task ids that will be worked on but not planned to be relesead this week 
+-run date +%V to get week of the year number
+-create lablel week_{week_of_the_year}_to_release and apply ot tasks that would be released 
+-create lablel week_{week_of_the_year}_progress and apply ot tasks that would be worked on
+-print summary

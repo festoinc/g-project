@@ -1,0 +1,8 @@
+- run last-updates {project_handle} {last_standup} it will give you list of the tasks that was changed since last stand-up
+- iterate theough each task and run get-latest-changes {task_handle} {last_standup} it will give you changes that happened to task since last stand-up
+-  Based on information you collected please prepare stand-up report draft to explain what team have been doing since last stand-up.
+- run  date -u 
+- update /settings/settings.md last standup with   date -u 
+
+
+

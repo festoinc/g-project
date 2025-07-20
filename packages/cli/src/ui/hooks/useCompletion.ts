@@ -255,10 +255,15 @@ export function useCompletion(
 
     const partialPath = query.substring(atIndex + 1);
     const lastSlashIndex = partialPath.lastIndexOf('/');
+    
+    // Default to custom_commands folder when @ is pressed without a path
     const baseDirRelative =
-      lastSlashIndex === -1
+      lastSlashIndex === -1 && partialPath === ''
+        ? 'custom_commands'
+        : lastSlashIndex === -1
         ? '.'
         : partialPath.substring(0, lastSlashIndex + 1);
+        
     const prefix = unescapePath(
       lastSlashIndex === -1
         ? partialPath
@@ -399,10 +404,12 @@ export function useCompletion(
 
       try {
         // If there's no slash, or it's the root, do a recursive search from cwd
+        // But if @ was just pressed (empty partialPath), show custom_commands folder
         if (
           partialPath.indexOf('/') === -1 &&
           prefix &&
-          enableRecursiveSearch
+          enableRecursiveSearch &&
+          partialPath !== '' // Don't do recursive search for empty @ press
         ) {
           if (fileDiscoveryService) {
             fetchedSuggestions = await findFilesWithGlob(
