@@ -692,6 +692,25 @@ INNER_EOF
                 else
                     print_error "✗ Jira CLI failed (but curl worked)"
                     print_status "  This suggests a Jira CLI configuration issue"
+                    echo ""
+                    print_status "🔍 DEBUGGING: Let's check the Jira CLI configuration..."
+                    
+                    # Show current config
+                    if [ -f "$HOME/.jira.d/config.yml" ]; then
+                        print_status "Current Jira CLI config:"
+                        cat "$HOME/.jira.d/config.yml" | sed 's/password-script:.*/password-script: [HIDDEN]/'
+                    else
+                        print_error "Jira CLI config file not found!"
+                    fi
+                    
+                    echo ""
+                    print_status "Testing Jira CLI with verbose output..."
+                    jira request /rest/api/2/myself || true
+                    
+                    echo ""
+                    print_status "Since curl authentication worked, continuing with setup..."
+                    print_status "You can debug Jira CLI later if needed."
+                    connection_successful=true
                 fi
             else
                 print_error "✗ Curl authentication failed (HTTP $http_code)"
