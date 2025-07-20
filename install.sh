@@ -6,7 +6,7 @@
 set -e
 
 # Installation script version
-INSTALL_VERSION="v18"
+INSTALL_VERSION="v19"
 
 # Colors for output
 RED='\033[0;31m'
