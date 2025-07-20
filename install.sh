@@ -663,9 +663,11 @@ INNER_EOF
     
     while [ "$connection_successful" = false ] && [ $attempt -le $max_attempts ]; do
         print_status "Testing Jira connection (attempt $attempt/$max_attempts)..."
+        echo ""
         
         # First test with curl to validate basic auth
-        print_status "Step 1: Testing credentials with curl..."
+        print_status "🔹 STEP 1: Testing credentials with CURL..."
+        print_status "  → curl -u $jira_email:*** https://$jira_host/rest/api/2/myself"
         local curl_response
         local curl_exit_code
         curl_response=$(timeout 10 curl -s -w "\n%{http_code}" -u "$jira_email:$jira_api_token" "https://$jira_host/rest/api/2/myself" 2>/dev/null)
@@ -681,7 +683,9 @@ INNER_EOF
                 print_status "  Authenticated as: $username"
                 
                 # Now test with jira CLI
-                print_status "Step 2: Testing with Jira CLI..."
+                echo ""
+                print_status "🔹 STEP 2: Testing with JIRA CLI..."
+                print_status "  → jira request /rest/api/2/myself"
                 if timeout 10 jira request /rest/api/2/myself >/dev/null 2>&1; then
                     print_success "✓ Jira CLI connection successful!"
                     connection_successful=true
@@ -707,16 +711,18 @@ INNER_EOF
         fi
         
         if [ "$connection_successful" = false ]; then
-            
             if [ $attempt -lt $max_attempts ]; then
                 echo ""
+                echo ""
+                print_error "❌ CONNECTION FAILED - Let's try again with new credentials"
                 print_status "Connection failed. This could be due to:"
                 echo "  • Incorrect Jira host URL"
                 echo "  • Invalid email address"
                 echo "  • Wrong or expired API token"
                 echo "  • Network connectivity issues"
                 echo ""
-                print_status "Let's try again with new credentials..."
+                echo ""
+                print_status "🔄 RETRY: Please enter your credentials again..."
                 echo ""
                 
                 # Reset variables for retry
@@ -760,7 +766,7 @@ INNER_EOF
                 done
                 
                 echo ""
-                print_status "Reconfiguring Jira CLI with new credentials..."
+                print_status "🔧 RECONFIGURING: Updating Jira CLI with new credentials..."
                 
                 # Update credentials
                 echo "$jira_api_token" > "$HOME/.jira.d/.api_token"
