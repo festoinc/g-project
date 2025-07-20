@@ -623,8 +623,7 @@ setup_jira_integration() {
 
     while [ -z "$jira_api_token" ]; do
         printf "Enter your Jira API token: "
-        read -r -s jira_api_token
-        echo ""
+        read -r jira_api_token
         if [ -z "$jira_api_token" ]; then
             print_error "This field is required"
         fi
@@ -716,8 +715,7 @@ INNER_EOF
                 
                 while [ -z "$jira_api_token" ]; do
                     printf "Enter your Jira API token: "
-                    read -r -s jira_api_token
-                    echo ""
+                    read -r jira_api_token
                     if [ -z "$jira_api_token" ]; then
                         print_error "This field is required"
                     fi
