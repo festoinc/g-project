@@ -639,20 +639,19 @@ setup_jira_integration() {
     echo "$jira_api_token" > "$HOME/.jira.d/.api_token"
     chmod 600 "$HOME/.jira.d/.api_token"
 
-    # Create password script
-    cat > "$HOME/.jira.d/pass.sh" << 'INNER_EOF'
-#!/bin/bash
-cat "$HOME/.jira.d/.api_token"
-INNER_EOF
-    chmod +x "$HOME/.jira.d/pass.sh"
-
-    # Create config
+    # Create config using environment variable approach
     cat > "$HOME/.jira.d/config.yml" << INNER_EOF
 endpoint: https://$jira_host
 user: $jira_email
-password-source: script
-password-script: $HOME/.jira.d/pass.sh
+authentication-method: api-token
 INNER_EOF
+
+    # Create environment setup script
+    cat > "$HOME/.jira.d/env.sh" << 'INNER_EOF'
+#!/bin/bash
+export JIRA_API_TOKEN=$(cat "$HOME/.jira.d/.api_token")
+INNER_EOF
+    chmod +x "$HOME/.jira.d/env.sh"
 
     print_success "Jira CLI configured successfully"
 
@@ -685,8 +684,8 @@ INNER_EOF
                 # Now test with jira CLI
                 echo ""
                 print_status "🔹 STEP 2: Testing with JIRA CLI..."
-                print_status "  → jira request /rest/api/2/myself"
-                if timeout 10 jira request /rest/api/2/myself >/dev/null 2>&1; then
+                print_status "  → JIRA_API_TOKEN=*** jira request /rest/api/2/myself"
+                if timeout 10 env JIRA_API_TOKEN="$jira_api_token" jira request /rest/api/2/myself >/dev/null 2>&1; then
                     print_success "✓ Jira CLI connection successful!"
                     connection_successful=true
                 else
@@ -704,8 +703,8 @@ INNER_EOF
                     fi
                     
                     echo ""
-                    print_status "Testing Jira CLI with verbose output..."
-                    jira request /rest/api/2/myself || true
+                    print_status "Testing Jira CLI with verbose output and environment variable..."
+                    env JIRA_API_TOKEN="$jira_api_token" jira request /rest/api/2/myself || true
                     
                     echo ""
                     print_status "Since curl authentication worked, continuing with setup..."
@@ -795,8 +794,7 @@ INNER_EOF
                 cat > "$HOME/.jira.d/config.yml" << INNER_EOF
 endpoint: https://$jira_host
 user: $jira_email
-password-source: script
-password-script: $HOME/.jira.d/pass.sh
+authentication-method: api-token
 INNER_EOF
                 
                 print_success "Jira CLI reconfigured with new credentials"
@@ -818,7 +816,7 @@ INNER_EOF
         print_status "Getting available Jira projects..."
         echo ""
         echo "Available projects:"
-        jira request /rest/api/2/project | jq -r '.[] | "  " + .key + " - " + .name' 2>/dev/null || {
+        env JIRA_API_TOKEN="$jira_api_token" jira request /rest/api/2/project | jq -r '.[] | "  " + .key + " - " + .name' 2>/dev/null || {
             print_warning "Could not retrieve project list. You can set up default project later."
         }
         
