@@ -674,7 +674,7 @@ INNER_EOF
         
         if [ $curl_exit_code -eq 0 ]; then
             local http_code=$(echo "$curl_response" | tail -n1)
-            local response_body=$(echo "$curl_response" | head -n -1)
+            local response_body=$(echo "$curl_response" | sed '$d')
             
             if [ "$http_code" = "200" ]; then
                 print_success "✓ Curl authentication successful (HTTP $http_code)"
