@@ -136,16 +136,8 @@ export async function runNonInteractive(
               process.exit(1);
             }
           } else if (config.getFullCliOutput()) {
-            // Display tool execution output when --fullcli is enabled
-            if (toolResponse.resultDisplay) {
-              if (typeof toolResponse.resultDisplay === 'string') {
-                console.error(`✔ ${fc.name}: ${toolResponse.resultDisplay}`);
-              } else {
-                console.error(`✔ ${fc.name}: Modified ${toolResponse.resultDisplay.fileName}`);
-              }
-            } else {
-              console.error(`✔ ${fc.name}`);
-            }
+            // Display simple tool execution success when --fullcli is enabled
+            console.error(`✔ ${fc.name}`);
           }
 
           if (toolResponse.responseParts) {
