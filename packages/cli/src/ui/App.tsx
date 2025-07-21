@@ -70,13 +70,11 @@ import { useGitBranchName } from './hooks/useGitBranchName.js';
 import { useBracketedPaste } from './hooks/useBracketedPaste.js';
 import { useTextBuffer } from './components/shared/text-buffer.js';
 import * as fs from 'fs';
-import { UpdateNotification } from './components/UpdateNotification.js';
 import {
   isProQuotaExceededError,
   isGenericQuotaExceededError,
   UserTierId,
 } from '@google/gemini-cli-core';
-import { checkForUpdates } from './utils/updateCheck.js';
 import ansiEscapes from 'ansi-escapes';
 import { OverflowProvider } from './contexts/OverflowContext.js';
 import { ShowMoreLines } from './components/ShowMoreLines.js';
@@ -98,13 +96,9 @@ export const AppWrapper = (props: AppProps) => (
 
 const App = ({ config, settings, startupWarnings = [], version }: AppProps) => {
   useBracketedPaste();
-  const [updateMessage, setUpdateMessage] = useState<string | null>(null);
   const { stdout } = useStdout();
   const nightly = version.includes('nightly');
 
-  useEffect(() => {
-    checkForUpdates().then(setUpdateMessage);
-  }, []);
 
   const { history, addItem, clearItems, loadHistory } = useHistory();
   const {
@@ -690,8 +684,6 @@ const App = ({ config, settings, startupWarnings = [], version }: AppProps) => {
   return (
     <StreamingContext.Provider value={streamingState}>
       <Box flexDirection="column" marginBottom={1} width="90%">
-        {/* Move UpdateNotification outside Static so it can re-render when updateMessage changes */}
-        {updateMessage && <UpdateNotification message={updateMessage} />}
 
         {/*
          * The Static component is an Ink intrinsic in which there can only be 1 per application.
