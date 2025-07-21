@@ -55,6 +55,7 @@ export interface CliArgs {
   allowedMcpServerNames: string[] | undefined;
   extensions: string[] | undefined;
   listExtensions: boolean | undefined;
+  fullcli: boolean | undefined;
 }
 
 export async function parseArguments(): Promise<CliArgs> {
@@ -179,6 +180,11 @@ export async function parseArguments(): Promise<CliArgs> {
     .option('ide-mode', {
       type: 'boolean',
       description: 'Run in IDE mode?',
+    })
+    .option('fullcli', {
+      type: 'boolean',
+      description: 'Show full CLI tool execution output in non-interactive mode',
+      default: false,
     })
 
     .version(await getCliVersion()) // This will enable the --version flag based on package.json
@@ -363,6 +369,7 @@ export async function loadCliConfig(
     })),
     noBrowser: !!process.env.NO_BROWSER,
     summarizeToolOutput: settings.summarizeToolOutput,
+    fullCliOutput: argv.fullcli || false,
   });
 }
 

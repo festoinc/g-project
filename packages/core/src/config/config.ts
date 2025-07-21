@@ -145,6 +145,7 @@ export interface ConfigParameters {
   activeExtensions?: ActiveExtension[];
   noBrowser?: boolean;
   summarizeToolOutput?: Record<string, SummarizeToolOutputSettings>;
+  fullCliOutput?: boolean;
 }
 
 export class Config {
@@ -193,6 +194,7 @@ export class Config {
   private readonly summarizeToolOutput:
     | Record<string, SummarizeToolOutputSettings>
     | undefined;
+  private readonly fullCliOutput: boolean;
 
   constructor(params: ConfigParameters) {
     this.sessionId = params.sessionId;
@@ -239,6 +241,7 @@ export class Config {
     this._activeExtensions = params.activeExtensions ?? [];
     this.noBrowser = params.noBrowser ?? false;
     this.summarizeToolOutput = params.summarizeToolOutput;
+    this.fullCliOutput = params.fullCliOutput ?? false;
 
     // Context filename handling removed - no longer using GEMINI.md files
 
@@ -499,6 +502,10 @@ export class Config {
     | Record<string, SummarizeToolOutputSettings>
     | undefined {
     return this.summarizeToolOutput;
+  }
+
+  getFullCliOutput(): boolean {
+    return this.fullCliOutput;
   }
 
 
