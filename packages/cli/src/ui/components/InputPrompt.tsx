@@ -203,20 +203,10 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
           buffer.text.length,
           suggestion,
         );
-        
-        // After autocompleting @ command, check if the resulting path exists and execute immediately
-        const updatedText = buffer.text;
-        setTimeout(async () => {
-          const pathExists = await checkAtCommandPathExists(updatedText);
-          if (pathExists) {
-            handleSubmitAndClear(updatedText);
-            return;
-          }
-        }, 10); // Small delay to ensure text buffer is updated
       }
       resetCompletionState();
     },
-    [resetCompletionState, buffer, completionSuggestions, slashCommands, checkAtCommandPathExists, handleSubmitAndClear],
+    [resetCompletionState, buffer, completionSuggestions, slashCommands],
   );
 
   // Handle clipboard image pasting with Ctrl+V
@@ -314,17 +304,46 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
           // For Enter key on @ commands, check if path exists first
           if (key.name === 'return' && isAtCommand(buffer.text)) {
             // Check if the current @ command path exists
-            checkAtCommandPathExists(buffer.text).then((exists) => {
+            checkAtCommandPathExists(buffer.text).then(async (exists) => {
               if (exists) {
                 // Path exists, execute command directly
                 handleSubmitAndClear(buffer.text);
               } else if (completion.suggestions.length > 0) {
-                // Path doesn't exist but we have suggestions, autocomplete
+                // Path doesn't exist but we have suggestions
                 const targetIndex =
                   completion.activeSuggestionIndex === -1
                     ? 0 // Default to the first if none is active
                     : completion.activeSuggestionIndex;
                 if (targetIndex < completion.suggestions.length) {
+                  const suggestion = completion.suggestions[targetIndex];
+                  
+                  // Check if autocompleting this suggestion would result in an executable path
+                  const atIndex = buffer.text.lastIndexOf('@');
+                  if (atIndex !== -1) {
+                    const pathPart = buffer.text.substring(atIndex + 1);
+                    const lastSlashIndex = pathPart.lastIndexOf('/');
+                    
+                    // Construct what the resulting path would be after autocomplete
+                    let resultingPath: string;
+                    if (lastSlashIndex === -1) {
+                      // Simple case: @something -> @suggestion
+                      resultingPath = `@${suggestion.value}`;
+                    } else {
+                      // Complex case: @path/something -> @path/suggestion  
+                      const basePath = pathPart.substring(0, lastSlashIndex + 1);
+                      resultingPath = `@${basePath}${suggestion.value}`;
+                    }
+                    
+                    // Check if this resulting path would be executable
+                    const wouldBeExecutable = await checkAtCommandPathExists(resultingPath);
+                    if (wouldBeExecutable) {
+                      // Execute directly instead of autocompleting
+                      handleSubmitAndClear(resultingPath);
+                      return;
+                    }
+                  }
+                  
+                  // Default behavior: just autocomplete
                   handleAutocomplete(targetIndex);
                 }
               }
