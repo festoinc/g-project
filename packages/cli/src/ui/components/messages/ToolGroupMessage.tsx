@@ -100,6 +100,7 @@ export const ToolGroupMessage: React.FC<ToolGroupMessageProps> = ({
                       : 'medium'
                 }
                 renderOutputAsMarkdown={tool.renderOutputAsMarkdown}
+                config={config}
               />
             </Box>
             {tool.status === ToolCallStatus.Confirming &&
