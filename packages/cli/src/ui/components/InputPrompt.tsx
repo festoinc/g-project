@@ -25,6 +25,7 @@ import {
   cleanupOldClipboardImages,
 } from '../utils/clipboardUtils.js';
 import * as path from 'path';
+import { promises as fs } from 'fs';
 
 export interface InputPromptProps {
   buffer: TextBuffer;
@@ -90,6 +91,31 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
       setJustNavigatedHistory(true);
     },
     [buffer, setJustNavigatedHistory],
+  );
+
+  // Helper function to check if @ command path exists
+  const checkAtCommandPathExists = useCallback(
+    async (text: string): Promise<boolean> => {
+      if (!isAtCommand(text)) return false;
+      
+      const atIndex = text.lastIndexOf('@');
+      if (atIndex === -1) return false;
+      
+      const pathPart = text.substring(atIndex + 1).trim();
+      if (!pathPart) return false;
+      
+      // Handle default to custom_commands folder like in useCompletion
+      const actualPath = pathPart || 'custom_commands';
+      const absolutePath = path.resolve(config.getTargetDir(), actualPath);
+      
+      try {
+        await fs.stat(absolutePath);
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    [config],
   );
 
   const inputHistory = useInputHistory({
@@ -275,6 +301,28 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
         }
 
         if (key.name === 'tab' || (key.name === 'return' && !key.ctrl)) {
+          // For Enter key on @ commands, check if path exists first
+          if (key.name === 'return' && isAtCommand(buffer.text)) {
+            // Check if the current @ command path exists
+            checkAtCommandPathExists(buffer.text).then((exists) => {
+              if (exists) {
+                // Path exists, execute command directly
+                handleSubmitAndClear(buffer.text);
+              } else if (completion.suggestions.length > 0) {
+                // Path doesn't exist but we have suggestions, autocomplete
+                const targetIndex =
+                  completion.activeSuggestionIndex === -1
+                    ? 0 // Default to the first if none is active
+                    : completion.activeSuggestionIndex;
+                if (targetIndex < completion.suggestions.length) {
+                  handleAutocomplete(targetIndex);
+                }
+              }
+            });
+            return;
+          }
+          
+          // For Tab key or non-@ commands, use normal autocomplete
           if (completion.suggestions.length > 0) {
             const targetIndex =
               completion.activeSuggestionIndex === -1
