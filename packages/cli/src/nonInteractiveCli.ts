@@ -143,8 +143,6 @@ export async function runNonInteractive(
               } else {
                 console.error(`✔ ${fc.name}: Modified ${toolResponse.resultDisplay.fileName}`);
               }
-            } else if (toolResponse.summary) {
-              console.error(`✔ ${fc.name}: ${toolResponse.summary}`);
             } else {
               console.error(`✔ ${fc.name}`);
             }
