@@ -203,10 +203,20 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
           buffer.text.length,
           suggestion,
         );
+        
+        // After autocompleting @ command, check if the resulting path exists and execute immediately
+        const updatedText = buffer.text;
+        setTimeout(async () => {
+          const pathExists = await checkAtCommandPathExists(updatedText);
+          if (pathExists) {
+            handleSubmitAndClear(updatedText);
+            return;
+          }
+        }, 10); // Small delay to ensure text buffer is updated
       }
       resetCompletionState();
     },
-    [resetCompletionState, buffer, completionSuggestions, slashCommands],
+    [resetCompletionState, buffer, completionSuggestions, slashCommands, checkAtCommandPathExists, handleSubmitAndClear],
   );
 
   // Handle clipboard image pasting with Ctrl+V
