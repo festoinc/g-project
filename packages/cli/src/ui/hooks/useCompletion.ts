@@ -402,6 +402,27 @@ export function useCompletion(
         respectGeminiIgnore: true,
       };
 
+      // Check if the exact file path already exists - if so, don't show suggestions
+      if (partialPath && partialPath.trim()) {
+        const actualPath = partialPath || 'custom_commands';
+        const absolutePath = path.resolve(cwd, actualPath);
+        
+        try {
+          await fs.stat(absolutePath);
+          // File exists - don't show suggestions
+          if (isMounted) {
+            setSuggestions([]);
+            setShowSuggestions(false);
+            setActiveSuggestionIndex(-1);
+            setVisibleStartIndex(0);
+            setIsLoadingSuggestions(false);
+          }
+          return;
+        } catch {
+          // File doesn't exist - continue with normal suggestion logic
+        }
+      }
+
       try {
         // If there's no slash, or it's the root, do a recursive search from cwd
         // But if @ was just pressed (empty partialPath), show custom_commands folder
