@@ -669,7 +669,7 @@ INNER_EOF
         print_status "  → curl -u $jira_email:*** https://$jira_host/rest/api/2/myself"
         local curl_response
         local curl_exit_code
-        curl_response=$(timeout 10 curl -s -w "\n%{http_code}" -u "$jira_email:$jira_api_token" "https://$jira_host/rest/api/2/myself" 2>/dev/null)
+        curl_response=$(curl -s -w "\n%{http_code}" -u "$jira_email:$jira_api_token" "https://$jira_host/rest/api/2/myself" 2>/dev/null)
         curl_exit_code=$?
         
         if [ $curl_exit_code -eq 0 ]; then
@@ -685,7 +685,7 @@ INNER_EOF
                 echo ""
                 print_status "🔹 STEP 2: Testing with JIRA CLI..."
                 print_status "  → JIRA_API_TOKEN=*** jira request /rest/api/2/myself"
-                if timeout 10 env JIRA_API_TOKEN="$jira_api_token" jira request /rest/api/2/myself >/dev/null 2>&1; then
+                if env JIRA_API_TOKEN="$jira_api_token" jira request /rest/api/2/myself >/dev/null 2>&1; then
                     print_success "✓ Jira CLI connection successful!"
                     connection_successful=true
                 else
