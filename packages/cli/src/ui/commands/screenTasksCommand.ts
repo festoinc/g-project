@@ -243,14 +243,20 @@ function generateResultTable(results: { [status: string]: TaskValidationResult[]
   const totalTasks = Object.values(results).reduce((sum, tasks) => sum + tasks.length, 0);
   let failedValidations = 0;
   let passedValidations = 0;
+  let totalValidations = 0;
 
-  for (const taskResults of Object.values(results)) {
+  for (const [status, taskResults] of Object.entries(results)) {
+    const rulesForStatus = validationRules[status];
     for (const task of taskResults) {
-      for (const validation of Object.values(task.validations)) {
-        if (validation.passed) {
-          passedValidations++;
-        } else {
-          failedValidations++;
+      // Count based on the actual rules that should have been run
+      for (const rule of rulesForStatus) {
+        if (task.validations[rule]) {
+          totalValidations++;
+          if (task.validations[rule].passed) {
+            passedValidations++;
+          } else {
+            failedValidations++;
+          }
         }
       }
     }
@@ -259,6 +265,11 @@ function generateResultTable(results: { [status: string]: TaskValidationResult[]
   output += `\n${chalk.bold('Summary:')} ${totalTasks} tasks validated`;
   output += ` | ${chalk.green(`✓ ${passedValidations} passed`)}`;
   output += ` | ${chalk.red(`✗ ${failedValidations} failed`)}`;
+  
+  // Add total validations for clarity
+  if (totalValidations !== passedValidations + failedValidations) {
+    output += ` | Total: ${totalValidations}`;
+  }
 
   return output;
 }
