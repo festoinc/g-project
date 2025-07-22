@@ -215,12 +215,20 @@ function generateResultTable(results: { [status: string]: TaskValidationResult[]
       
       for (const rule of rules) {
         const validation = task.validations[rule];
-        const icon = validation.passed ? chalk.green('✓') : chalk.red('✗');
-        const message = validation.passed ? chalk.green(validation.message) : chalk.red(validation.message);
-        const content = ` ${icon} ${message}`;
+        const icon = validation.passed ? '✓' : '✗';
+        const message = validation.message;
+        const rawContent = ` ${icon} ${message}`;
         
-        // Pad content without truncation for better readability
-        output += content.padEnd(columnWidths[rule]) + '│';
+        // Apply color after calculating padding
+        const coloredIcon = validation.passed ? chalk.green(icon) : chalk.red(icon);
+        const coloredMessage = validation.passed ? chalk.green(message) : chalk.red(message);
+        const coloredContent = ` ${coloredIcon} ${coloredMessage}`;
+        
+        // Calculate padding based on raw content length
+        const paddingNeeded = columnWidths[rule] - rawContent.length;
+        const paddedContent = coloredContent + ' '.repeat(Math.max(0, paddingNeeded));
+        
+        output += paddedContent + '│';
       }
       
       output += '\n';
