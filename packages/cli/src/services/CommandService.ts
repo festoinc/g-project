@@ -13,11 +13,15 @@ import { statsCommand } from '../ui/commands/statsCommand.js';
 import { compressCommand } from '../ui/commands/compressCommand.js';
 import { quitCommand } from '../ui/commands/quitCommand.js';
 import { toolsCommand } from '../ui/commands/toolsCommand.js';
+import { screenTasksCommand } from '../ui/commands/screenTasksCommand.js';
+import { existsSync } from 'fs';
+import { join } from 'path';
+import { readdirSync } from 'fs';
 
 const loadBuiltInCommands = async (
   _config: Config | null,
 ): Promise<SlashCommand[]> => {
-  const allCommands = [
+  const commands: (SlashCommand | null)[] = [
     authCommand,
     clearCommand,
     compressCommand,
@@ -27,7 +31,21 @@ const loadBuiltInCommands = async (
     toolsCommand,
   ];
 
-  return allCommands.filter(
+  // Only add screenTasksCommand if validation files exist
+  const settingsPath = join(process.cwd(), 'settings');
+  if (existsSync(settingsPath)) {
+    try {
+      const files = readdirSync(settingsPath);
+      const hasValidationFiles = files.some(file => file.endsWith('_validation.json'));
+      if (hasValidationFiles) {
+        commands.push(screenTasksCommand);
+      }
+    } catch (error) {
+      // Ignore errors reading directory
+    }
+  }
+
+  return commands.filter(
     (command): command is SlashCommand => command !== null,
   );
 };

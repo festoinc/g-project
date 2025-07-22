@@ -77,3 +77,7 @@ get-latest-changes AT-17 '14-JUL-2025 16:00:00' --logs
 ```
 
 Both functions automatically handle timezone conversion between UTC input and your Jira server's timezone.
+
+## Task Validation
+
+G-PROJECT includes a `/screen-tasks` command that validates Jira tasks based on project-specific rules. See [How to Create Validation Files](./how_to_create_validation_file.md) for detailed configuration instructions.

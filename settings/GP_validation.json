@@ -1,0 +1,5 @@
+{
+  "In Progress": ["comment_count_at_least_one", "description_not_empty"],
+  "Design": ["original_estimate_not_empty"],
+  "Verification": ["worklog_not_empty"]
+}
