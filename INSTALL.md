@@ -78,17 +78,10 @@ g-project --help
 
 ## Getting Started
 
-1. **Create a new project**:
-   ```bash
-   g-project /start-project <PROJECT_HANDLE> <JIRA_USER>
-   ```
-
-2. **Example**:
-   ```bash
-   g-project /start-project AT john.doe@company.com
-   ```
-
-This will create a `settings/settings.md` file with your project configuration.
+To start using g-project, simply run:
+```bash
+g-project
+```
 
 ## Troubleshooting
 
