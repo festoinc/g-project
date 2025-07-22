@@ -946,6 +946,16 @@ SETTINGS_EOF
         
         print_success "Project settings created at: $project_directory/settings/settings.md"
         
+        # Create validation file for the project
+        print_status "Creating validation rules for project: $default_project"
+        cat > "$project_directory/settings/${default_project}_validation.json" << VALIDATION_EOF
+{
+  "In Progress": ["original_estimate_not_empty"]
+}
+VALIDATION_EOF
+        
+        print_success "Validation rules created at: $project_directory/settings/${default_project}_validation.json"
+        
         # Create custom_commands directory with example files
         print_status "Creating custom_commands directory with examples..."
         mkdir -p "$project_directory/custom_commands"

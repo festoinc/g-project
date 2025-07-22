@@ -196,7 +196,7 @@ function generateResultTable(results: { [status: string]: TaskValidationResult[]
     const rules = validationRules[status];
     const columnWidths: { [key: string]: number } = {
       taskId: 10,
-      ...Object.fromEntries(rules.map(rule => [rule, Math.max(rule.length + 2, 20)]))
+      ...Object.fromEntries(rules.map(rule => [rule, Math.max(rule.length + 4, 30)]))
     };
 
     // Header row
@@ -219,10 +219,8 @@ function generateResultTable(results: { [status: string]: TaskValidationResult[]
         const message = validation.passed ? chalk.green(validation.message) : chalk.red(validation.message);
         const content = ` ${icon} ${message}`;
         
-        // Truncate if too long
-        const maxLength = columnWidths[rule] - 2;
-        const displayContent = content.length > maxLength ? content.substring(0, maxLength - 3) + '...' : content;
-        output += displayContent.padEnd(columnWidths[rule]) + '│';
+        // Pad content without truncation for better readability
+        output += content.padEnd(columnWidths[rule]) + '│';
       }
       
       output += '\n';
