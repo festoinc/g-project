@@ -14,6 +14,7 @@ import { compressCommand } from '../ui/commands/compressCommand.js';
 import { quitCommand } from '../ui/commands/quitCommand.js';
 import { toolsCommand } from '../ui/commands/toolsCommand.js';
 import { screenTasksCommand } from '../ui/commands/screenTasksCommand.js';
+import { getToKnowMyProjectCommand } from '../ui/commands/getToKnowMyProjectCommand.js';
 import { existsSync } from 'fs';
 import { join } from 'path';
 import { readdirSync } from 'fs';
@@ -25,6 +26,7 @@ const loadBuiltInCommands = async (
     authCommand,
     clearCommand,
     compressCommand,
+    getToKnowMyProjectCommand,
     quitCommand,
     statsCommand,
     themeCommand,
