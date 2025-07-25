@@ -106,6 +106,21 @@ clean_path_entries() {
     fi
 }
 
+# Function to remove Google authorization
+remove_google_auth() {
+    local google_dir="$HOME/.gemini"
+    
+    if [ -d "$google_dir" ]; then
+        print_status "Removing Google authorization and cached credentials..."
+        rm -rf "$google_dir"
+        print_success "Removed Google authorization data from ~/.gemini"
+        return 0
+    else
+        print_status "No Google authorization data found"
+        return 0
+    fi
+}
+
 # Function to remove Jira-related files
 remove_jira_components() {
     local jira_removed=false
@@ -215,6 +230,7 @@ show_cleanup_summary() {
     echo "• G-PROJECT installation directory: $INSTALL_DIR"
     echo "• G-PROJECT executable: $BIN_DIR/$EXECUTABLE_NAME"
     echo "• PATH entries from shell configuration files"
+    echo "• Google authorization and cached credentials: ~/.gemini"
     
     if [ -f "$HOME/.jira_functions" ]; then
         echo "• Jira custom functions: ~/.jira_functions"
@@ -307,6 +323,7 @@ main() {
     # Remove components
     remove_executable
     remove_installation_directory
+    remove_google_auth
     remove_jira_components
     clean_path_entries
     
@@ -325,3 +342,6 @@ trap 'echo ""; print_error "Uninstall interrupted."; exit 1' INT TERM
 
 # Run main function
 main "$@"
+
+# Ensure script exits cleanly
+exit 0
